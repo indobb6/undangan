@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
-  Database, Music, CreditCard, Check, Search, Share2, Layers, ShieldCheck 
+  Database, Music, CreditCard, Check, Search, Share2, Layers, Heart 
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -11,8 +11,8 @@ import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent }) {
   const [eventsMap, setEventsMap] = useState({});
-  const [selectedSlug, setSelectedSlug] = useState(currentEventSlug || 'fauzi-nadiah');
-  const [activeTab, setActiveTab] = useState('guests'); // Client mode strictly sees 'guests'
+  const [selectedSlug, setSelectedSlug] = useState(currentEventSlug || '');
+  const [activeTab, setActiveTab] = useState('guests');
   const [settings, setSettingsState] = useState(null);
   const [guests, setGuests] = useState([]);
   const [newGuestName, setNewGuestName] = useState('');
@@ -21,7 +21,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   const [copiedAdminLink, setCopiedAdminLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Event Form State (Super Admin Only)
+  // New Event Form State
   const [newEventData, setNewEventData] = useState({
     event_slug: '',
     groom_name: '',
@@ -33,22 +33,34 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     loadAllEventsData();
   }, []);
 
-  useEffect(() => {
-    if (selectedSlug) {
-      loadEventSpecificData(selectedSlug);
-    }
-  }, [selectedSlug]);
-
   const loadAllEventsData = async () => {
     const allEvts = await getAllEvents();
     setEventsMap(allEvts);
-    if (!allEvts[selectedSlug]) {
-      const firstSlug = Object.keys(allEvts)[0] || 'fauzi-nadiah';
-      setSelectedSlug(firstSlug);
+    const availableSlugs = Object.keys(allEvts);
+
+    if (availableSlugs.length === 0) {
+      setActiveTab('new_event');
+      setSelectedSlug('');
+    } else {
+      const active = (selectedSlug && allEvts[selectedSlug]) ? selectedSlug : availableSlugs[0];
+      setSelectedSlug(active);
+      loadEventSpecificData(active);
+    }
+  };
+
+  const handleSelectEvent = (slug) => {
+    if (slug === 'new') {
+      setActiveTab('new_event');
+    } else {
+      setSelectedSlug(slug);
+      setActiveTab('guests');
+      loadEventSpecificData(slug);
+      if (onSwitchEvent) onSwitchEvent(slug);
     }
   };
 
   const loadEventSpecificData = async (slug) => {
+    if (!slug) return;
     const setRes = await getWeddingSettings(slug);
     const guestRes = await getGuestsByEvent(slug);
     setSettingsState(setRes);
@@ -57,9 +69,11 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();
+    if (!selectedSlug) return;
     setIsSaving(true);
     await saveWeddingSettings(selectedSlug, settings);
     setIsSaving(false);
+    await loadAllEventsData();
     alert(`Pengaturan acara "${settings.groom_name} & ${settings.bride_name}" berhasil disimpan!`);
   };
 
@@ -78,7 +92,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
 
   const handleAddGuest = async (e) => {
     e.preventDefault();
-    if (!newGuestName.trim()) return;
+    if (!newGuestName.trim() || !selectedSlug) return;
 
     const added = await addOrUpdateGuest(selectedSlug, {
       name: newGuestName.trim(),
@@ -109,6 +123,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   };
 
   const copyClientAdminLink = () => {
+    if (!selectedSlug) return;
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?event=${selectedSlug}&client=true`;
     navigator.clipboard.writeText(url);
@@ -127,8 +142,9 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     .reduce((acc, curr) => acc + (curr.food_quota || 1), 0);
   const totalRedeemed = guests.filter((g) => g.food_redeemed).length;
 
-  const groomTitle = settings?.groom_name?.split(',')[0] || 'Fauzi';
-  const brideTitle = settings?.bride_name?.split(',')[0] || 'Nadiah';
+  const availableSlugs = Object.keys(eventsMap);
+  const groomTitle = settings?.groom_name?.split(',')[0] || '';
+  const brideTitle = settings?.bride_name?.split(',')[0] || '';
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 text-slate-100 selection:bg-rosewood-500 selection:text-white">
@@ -153,7 +169,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
             </div>
 
             {/* EVENT SELECTOR (SUPER ADMIN ONLY) */}
-            {!isClientMode ? (
+            {!isClientMode && (
               <div className="flex items-center gap-3 pt-1">
                 <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
                   <Layers className="w-4 h-4 text-rose-400" />
@@ -161,36 +177,29 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                 </span>
                 <select
                   value={selectedSlug}
-                  onChange={(e) => {
-                    if (e.target.value === 'new') {
-                      setActiveTab('new_event');
-                    } else {
-                      setSelectedSlug(e.target.value);
-                      if (onSwitchEvent) onSwitchEvent(e.target.value);
-                    }
-                  }}
+                  onChange={(e) => handleSelectEvent(e.target.value)}
                   className="px-4 py-2 rounded-xl bg-slate-950 border border-rosewood-400/40 text-rose-200 text-xs font-bold focus:outline-none focus:border-rose-400"
                 >
-                  {Object.keys(eventsMap).map((slug) => {
-                    const evt = eventsMap[slug];
-                    return (
-                      <option key={slug} value={slug}>
-                        💒 {evt.groom_name?.split(',')[0]} & {evt.bride_name?.split(',')[0]} ({slug})
-                      </option>
-                    );
-                  })}
+                  {availableSlugs.length === 0 ? (
+                    <option value="">-- Belum ada acara --</option>
+                  ) : (
+                    availableSlugs.map((slug) => {
+                      const evt = eventsMap[slug];
+                      return (
+                        <option key={slug} value={slug}>
+                          💒 {evt.groom_name?.split(',')[0]} & {evt.bride_name?.split(',')[0]} ({slug})
+                        </option>
+                      );
+                    })
+                  )}
                   <option value="new">➕ Buat Acara Undangan Baru...</option>
                 </select>
               </div>
-            ) : (
-              <p className="text-xs text-slate-400">
-                Kelola daftar tamu, salin link WA, & lihat rekap porsi konsumsi untuk pernikahan Anda.
-              </p>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            {!isClientMode && (
+            {!isClientMode && selectedSlug && (
               <button
                 onClick={copyClientAdminLink}
                 className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 font-bold text-xs flex items-center gap-2 transition"
@@ -218,7 +227,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
           </div>
         </div>
 
-        {/* TAB NAVIGATION (SUPER ADMIN VS CLIENT MODE) */}
+        {/* TAB NAVIGATION */}
         <div className="flex border-b border-slate-800">
           <button
             onClick={() => setActiveTab('guests')}
@@ -261,8 +270,26 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
           )}
         </div>
 
-        {/* TAB 1: GUEST MANAGEMENT (ACCESSIBLE BY BOTH CLIENT & SUPER ADMIN) */}
-        {activeTab === 'guests' && (
+        {/* EMPTY STATE IF NO EVENTS EXIST YET */}
+        {availableSlugs.length === 0 && activeTab !== 'new_event' && (
+          <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 text-center space-y-4">
+            <Heart className="w-12 h-12 text-rosewood-400 mx-auto animate-pulse" />
+            <h3 className="text-lg font-serif font-bold text-rose-300">Belum Ada Acara Pernikahan</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Silakan buat acara pernikahan baru terlebih dahulu untuk mulai menambahkan tamu dan mengatur acara.
+            </p>
+            <button
+              onClick={() => setActiveTab('new_event')}
+              className="py-3 px-6 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-xs inline-flex items-center gap-2 transition shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Buat Acara Pertama Sekarang</span>
+            </button>
+          </div>
+        )}
+
+        {/* TAB 1: GUEST MANAGEMENT */}
+        {availableSlugs.length > 0 && activeTab === 'guests' && (
           <div className="space-y-6">
             {/* Stats Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -292,7 +319,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   required
                   value={newGuestName}
                   onChange={(e) => setNewGuestName(e.target.value)}
-                  placeholder={`Masukkan Nama Tamu...`}
+                  placeholder={`Masukkan Nama Tamu Baru...`}
                   className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-400 text-xs"
                 />
                 <button
@@ -334,7 +361,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   {filteredGuests.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                        Belum ada tamu di acara ini. Tambahkan tamu di atas!
+                        Belum ada tamu di acara ini. Tambahkan tamu pertama di atas!
                       </td>
                     </tr>
                   ) : (
@@ -408,8 +435,8 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
           </div>
         )}
 
-        {/* TAB 2: SETTINGS FORM (SUPER ADMIN ONLY) */}
-        {!isClientMode && activeTab === 'settings' && settings && (
+        {/* TAB 2: SETTINGS FORM */}
+        {!isClientMode && availableSlugs.length > 0 && activeTab === 'settings' && settings && (
           <form onSubmit={handleSaveSettings} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
             <h2 className="text-xl font-serif font-bold text-rose-300 border-b border-slate-800 pb-3">
               Pengaturan Acara ({selectedSlug})
@@ -547,7 +574,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
           </form>
         )}
 
-        {/* TAB 3: CREATE NEW EVENT (SUPER ADMIN ONLY) */}
+        {/* TAB 3: CREATE NEW EVENT */}
         {!isClientMode && activeTab === 'new_event' && (
           <form onSubmit={handleCreateNewEvent} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
             <div className="space-y-1 border-b border-slate-800 pb-3">
@@ -563,7 +590,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Budi Santoso, S.Kom"
+                  placeholder="Contoh: Fauzi Pratama, S.Kom"
                   value={newEventData.groom_name}
                   onChange={(e) => setNewEventData({ ...newEventData, groom_name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
@@ -575,7 +602,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Rani Wijaya, S.E"
+                  placeholder="Contoh: Nadiah Rahmawati, S.E"
                   value={newEventData.bride_name}
                   onChange={(e) => setNewEventData({ ...newEventData, bride_name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
@@ -583,12 +610,35 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
               </div>
             </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">URL Slug Acara (Opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: fauzi-nadiah"
+                  value={newEventData.event_slug}
+                  onChange={(e) => setNewEventData({ ...newEventData, event_slug: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Tanggal Pernikahan</label>
+                <input
+                  type="date"
+                  value={newEventData.akad_date}
+                  onChange={(e) => setNewEventData({ ...newEventData, akad_date: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
-              className="py-3.5 px-8 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-md"
+              className="py-3.5 px-8 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md"
             >
               <Plus className="w-4 h-4" />
-              <span>Buat Acara Pernikahan Baru</span>
+              <span>Simpan & Buat Acara</span>
             </button>
           </form>
         )}

@@ -1,105 +1,34 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-const DEFAULT_EVENTS = {
-  'fauzi-nadiah': {
-    id: 'fauzi-nadiah',
-    event_slug: 'fauzi-nadiah',
-    groom_name: 'Fauzi Pratama, S.Kom',
-    bride_name: 'Nadiah Rahmawati, S.E',
-    groom_parents: 'Putra dari Bp. H. Ahmad & Ibu Hj. Siti',
-    bride_parents: 'Putri dari Bp. H. Budi & Ibu Hj. Dewi',
-    groom_instagram: '@fauzi',
-    bride_instagram: '@nadiah',
-    akad_date: '2026-08-29',
-    akad_time: '08:00 WIB - Selesai',
-    akad_location: 'Masjid Agung Al-Azhar, Kebayoran Baru, Jakarta Selatan',
-    resepsi_date: '2026-08-29',
-    resepsi_time: '11:00 - 14:00 WIB',
-    resepsi_location: 'Ballroom Hotel Grand Mahakam, Jakarta Selatan',
-    google_maps_url: 'https://maps.google.com',
-    music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
-    bank_name: 'Bank BCA',
-    bank_account: '1234567890',
-    bank_owner: 'Fauzi Pratama',
-    bank_name_2: 'Bank Mandiri',
-    bank_account_2: '0987654321',
-    bank_owner_2: 'Nadiah Rahmawati'
-  },
-  'rizky-anisa': {
-    id: 'rizky-anisa',
-    event_slug: 'rizky-anisa',
-    groom_name: 'Rizky Pratama, S.T',
-    bride_name: 'Anisa Rahma, S.Pd',
-    groom_parents: 'Putra dari Bp. H. Hendra & Ibu Hj. Maryam',
-    bride_parents: 'Putri dari Bp. H. Syarif & Ibu Hj. Nur',
-    groom_instagram: '@rizky',
-    bride_instagram: '@anisa',
-    akad_date: '2026-09-12',
-    akad_time: '09:00 WIB - Selesai',
-    akad_location: 'Masjid Ramlie Musofa, Sunter, Jakarta Utara',
-    resepsi_date: '2026-09-12',
-    resepsi_time: '11:00 - 14:00 WIB',
-    resepsi_location: 'Balai Kartini, Jakarta Selatan',
-    google_maps_url: 'https://maps.google.com',
-    music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
-    bank_name: 'Bank BCA',
-    bank_account: '5555666677',
-    bank_owner: 'Rizky Pratama',
-    bank_name_2: 'Bank Mandiri',
-    bank_account_2: '8888999900',
-    bank_owner_2: 'Anisa Rahma'
-  }
+const DEFAULT_EVENT_TEMPLATE = {
+  id: 'default-event',
+  event_slug: 'default-event',
+  groom_name: 'Nama Mempelai Pria',
+  bride_name: 'Nama Mempelai Wanita',
+  groom_parents: 'Putra dari Bapak & Ibu...',
+  bride_parents: 'Putri dari Bapak & Ibu...',
+  groom_instagram: '',
+  bride_instagram: '',
+  akad_date: '2026-09-20',
+  akad_time: '08:00 WIB - Selesai',
+  akad_location: 'Lokasi Akad Nikah',
+  resepsi_date: '2026-09-20',
+  resepsi_time: '11:00 - 14:00 WIB',
+  resepsi_location: 'Lokasi Resepsi Nikah',
+  google_maps_url: 'https://maps.google.com',
+  music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  bank_name: 'Bank BCA',
+  bank_account: '',
+  bank_owner: '',
+  bank_name_2: 'Bank Mandiri',
+  bank_account_2: '',
+  bank_owner_2: ''
 };
-
-const DEFAULT_GUESTS = [
-  {
-    id: 'g-1',
-    event_slug: 'fauzi-nadiah',
-    name: 'M Yaser',
-    slug: 'm-yaser',
-    status: 'pending',
-    marital_status: 'single',
-    food_quota: 1,
-    qr_code_str: 'WED-YASE-1234',
-    food_redeemed: false,
-    redeemed_at: null,
-    wishes: '',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'g-2',
-    event_slug: 'fauzi-nadiah',
-    name: 'Budi Santoso & Istri',
-    slug: 'budi-santoso',
-    status: 'hadir',
-    marital_status: 'married',
-    food_quota: 2,
-    qr_code_str: 'WED-BUDI-5678',
-    food_redeemed: false,
-    redeemed_at: null,
-    wishes: 'Selamat menempuh hidup baru, semoga menjadi keluarga sakinah mawaddah warahmah!',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'g-3',
-    event_slug: 'rizky-anisa',
-    name: 'Ahmad Faisal',
-    slug: 'ahmad-faisal',
-    status: 'hadir',
-    marital_status: 'single',
-    food_quota: 1,
-    qr_code_str: 'WED-AHMA-9999',
-    food_redeemed: false,
-    redeemed_at: null,
-    wishes: 'Selamat untuk Rizky & Anisa!',
-    created_at: new Date().toISOString()
-  }
-];
 
 // LocalStorage helpers for Multi-Event
 const getLocalEventsMap = () => {
   const data = localStorage.getItem('wedding_events_map');
-  return data ? JSON.parse(data) : DEFAULT_EVENTS;
+  return data ? JSON.parse(data) : {};
 };
 
 const saveLocalEventsMap = (map) => {
@@ -108,7 +37,7 @@ const saveLocalEventsMap = (map) => {
 
 const getLocalGuests = () => {
   const data = localStorage.getItem('wedding_guests');
-  return data ? JSON.parse(data) : DEFAULT_GUESTS;
+  return data ? JSON.parse(data) : [];
 };
 
 const saveLocalGuests = (guests) => {
@@ -153,28 +82,36 @@ export const getAllEvents = async () => {
   return getLocalEventsMap();
 };
 
-export const getWeddingSettings = async (eventSlug = 'fauzi-nadiah') => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+export const getWeddingSettings = async (eventSlug) => {
+  const allEvents = await getAllEvents();
+  const availableSlugs = Object.keys(allEvents);
+  
+  const targetSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
+
+  if (!targetSlug) {
+    return null;
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .or(`id.eq.${cleanSlug},event_slug.eq.${cleanSlug}`)
+        .or(`id.eq.${targetSlug},event_slug.eq.${targetSlug}`)
         .single();
       if (!error && data) return data;
     } catch (e) {
       console.warn('Supabase fetch settings failed, falling back to local storage', e);
     }
   }
-  const events = getLocalEventsMap();
-  return events[cleanSlug] || events['fauzi-nadiah'] || DEFAULT_EVENTS['fauzi-nadiah'];
+
+  return allEvents[targetSlug] || null;
 };
 
 export const createNewEvent = async (eventData) => {
   const event_slug = createSlug(eventData.event_slug || `${eventData.groom_name}-${eventData.bride_name}`);
   const record = {
-    ...DEFAULT_EVENTS['fauzi-nadiah'],
+    ...DEFAULT_EVENT_TEMPLATE,
     ...eventData,
     id: event_slug,
     event_slug: event_slug,
@@ -196,7 +133,7 @@ export const createNewEvent = async (eventData) => {
 };
 
 export const saveWeddingSettings = async (eventSlug, newSettings) => {
-  const cleanSlug = eventSlug || newSettings.event_slug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug || newSettings.event_slug;
   const updated = {
     ...newSettings,
     id: cleanSlug,
@@ -221,14 +158,14 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
   return updated;
 };
 
-export const getGuestsByEvent = async (eventSlug = 'fauzi-nadiah') => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+export const getGuestsByEvent = async (eventSlug) => {
+  if (!eventSlug) return [];
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('guests')
         .select('*')
-        .eq('event_slug', cleanSlug)
+        .eq('event_slug', eventSlug)
         .order('created_at', { ascending: false });
       if (!error && data) return data;
     } catch (e) {
@@ -236,15 +173,15 @@ export const getGuestsByEvent = async (eventSlug = 'fauzi-nadiah') => {
     }
   }
   const localList = getLocalGuests();
-  return localList.filter((g) => (g.event_slug || 'fauzi-nadiah') === cleanSlug);
+  return localList.filter((g) => g.event_slug === eventSlug);
 };
 
-export const getAllGuests = async (eventSlug = 'fauzi-nadiah') => {
+export const getAllGuests = async (eventSlug) => {
   return await getGuestsByEvent(eventSlug);
 };
 
 export const addOrUpdateGuest = async (eventSlug, guestData) => {
-  const cleanSlug = eventSlug || guestData.event_slug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug || guestData.event_slug;
   const slug = guestData.slug || createSlug(guestData.name);
   const qr_code_str = guestData.qr_code_str || generateQRToken(guestData.name);
   const food_quota = guestData.marital_status === 'married' ? 2 : 1;
@@ -291,7 +228,7 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
 };
 
 export const submitRSVP = async ({ eventSlug, guestName, slug, status, marital_status, wishes }) => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug;
   const food_quota = marital_status === 'married' ? 2 : 1;
   const qr_code_str = generateQRToken(guestName);
 
