@@ -1,31 +1,29 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-const DEFAULT_EVENT_TEMPLATE = {
-  id: 'fauzi-nadiah',
-  event_slug: 'fauzi-nadiah',
-  groom_name: 'Fauzi Pratama, S.Kom',
-  bride_name: 'Nadiah Rahmawati, S.E',
-  groom_parents: 'Putra dari Bp. H. Ahmad & Ibu Hj. Siti',
-  bride_parents: 'Putri dari Bp. H. Budi & Ibu Hj. Dewi',
-  groom_instagram: '@fauzi',
-  bride_instagram: '@nadiah',
-  akad_date: '2026-08-29',
+const GENERIC_EVENT_TEMPLATE = {
+  groom_name: 'Mempelai Pria',
+  bride_name: 'Mempelai Wanita',
+  groom_parents: 'Putra dari Bapak & Ibu...',
+  bride_parents: 'Putri dari Bapak & Ibu...',
+  groom_instagram: '',
+  bride_instagram: '',
+  akad_date: '2026-09-20',
   akad_time: '08:00 WIB - Selesai',
-  akad_location: 'Masjid Agung Al-Azhar, Kebayoran Baru, Jakarta Selatan',
-  resepsi_date: '2026-08-29',
+  akad_location: 'Lokasi Akad Nikah',
+  resepsi_date: '2026-09-20',
   resepsi_time: '11:00 - 14:00 WIB',
-  resepsi_location: 'Ballroom Hotel Grand Mahakam, Jakarta Selatan',
+  resepsi_location: 'Lokasi Resepsi Nikah',
   google_maps_url: 'https://maps.google.com',
   music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
   bank_name: 'Bank BCA',
-  bank_account: '1234567890',
-  bank_owner: 'Fauzi Pratama',
+  bank_account: '',
+  bank_owner: '',
   bank_name_2: 'Bank Mandiri',
-  bank_account_2: '0987654321',
-  bank_owner_2: 'Nadiah Rahmawati'
+  bank_account_2: '',
+  bank_owner_2: ''
 };
 
-// LocalStorage helpers for Multi-Event
+// LocalStorage helpers for Multi-Event (DEFAULT IS EMPTY MAP {})
 const getLocalEventsMap = () => {
   const data = localStorage.getItem('wedding_events_map');
   if (data) {
@@ -35,7 +33,7 @@ const getLocalEventsMap = () => {
       // fallback
     }
   }
-  return { 'fauzi-nadiah': DEFAULT_EVENT_TEMPLATE };
+  return {}; // 100% EMPTY DEFAULT
 };
 
 const saveLocalEventsMap = (map) => {
@@ -75,12 +73,11 @@ export const getAllEvents = async () => {
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.from('settings').select('*');
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const map = {};
         data.forEach((evt) => {
           map[evt.event_slug || evt.id] = evt;
         });
-        // Also sync local storage
         saveLocalEventsMap(map);
         return map;
       }
@@ -91,11 +88,14 @@ export const getAllEvents = async () => {
   return getLocalEventsMap();
 };
 
-export const getWeddingSettings = async (eventSlug = 'fauzi-nadiah') => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+export const getWeddingSettings = async (eventSlug) => {
+  const allEvents = await getAllEvents();
+  const availableSlugs = Object.keys(allEvents);
+  
+  // Target slug logic: if eventSlug is passed, use it. Otherwise pick the first event in allEvents.
+  const cleanSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
 
-  // 1. Try Supabase first if configured
-  if (isSupabaseConfigured()) {
+  if (cleanSlug && isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
@@ -115,31 +115,38 @@ export const getWeddingSettings = async (eventSlug = 'fauzi-nadiah') => {
     }
   }
 
-  // 2. Check local storage
-  const eventsMap = getLocalEventsMap();
-  if (eventsMap[cleanSlug]) return eventsMap[cleanSlug];
+  if (cleanSlug && allEvents[cleanSlug]) {
+    return allEvents[cleanSlug];
+  }
 
-  // 3. Fallback to clean template with cleanSlug (NEVER return null)
+  // If cleanSlug exists but not found in map yet
+  if (cleanSlug) {
+    return {
+      ...GENERIC_EVENT_TEMPLATE,
+      id: cleanSlug,
+      event_slug: cleanSlug
+    };
+  }
+
+  // If absolutely zero events exist yet, return generic initial template
   return {
-    ...DEFAULT_EVENT_TEMPLATE,
-    id: cleanSlug,
-    event_slug: cleanSlug,
-    groom_name: 'Mempelai Pria',
-    bride_name: 'Mempelai Wanita'
+    ...GENERIC_EVENT_TEMPLATE,
+    id: 'sample-event',
+    event_slug: 'sample-event'
   };
 };
 
 export const createNewEvent = async (eventData) => {
   const event_slug = createSlug(eventData.event_slug || `${eventData.groom_name}-${eventData.bride_name}`);
   const record = {
-    ...DEFAULT_EVENT_TEMPLATE,
+    ...GENERIC_EVENT_TEMPLATE,
     ...eventData,
     id: event_slug,
     event_slug: event_slug,
     updated_at: new Date().toISOString()
   };
 
-  // 1. Save to LocalStorage IMMEDIATELY so UI updates with 0 latency
+  // 1. Save to LocalStorage IMMEDIATELY so dropdown updates with 0 ms delay
   const eventsMap = getLocalEventsMap();
   eventsMap[event_slug] = record;
   saveLocalEventsMap(eventsMap);
@@ -157,7 +164,7 @@ export const createNewEvent = async (eventData) => {
 };
 
 export const saveWeddingSettings = async (eventSlug, newSettings) => {
-  const cleanSlug = eventSlug || newSettings.event_slug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug || newSettings.event_slug;
   const updated = {
     ...newSettings,
     id: cleanSlug,
@@ -185,14 +192,14 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
   return updated;
 };
 
-export const getGuestsByEvent = async (eventSlug = 'fauzi-nadiah') => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+export const getGuestsByEvent = async (eventSlug) => {
+  if (!eventSlug) return [];
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('guests')
         .select('*')
-        .eq('event_slug', cleanSlug)
+        .eq('event_slug', eventSlug)
         .order('created_at', { ascending: false });
       if (!error && data) return data;
     } catch (e) {
@@ -200,15 +207,15 @@ export const getGuestsByEvent = async (eventSlug = 'fauzi-nadiah') => {
     }
   }
   const localList = getLocalGuests();
-  return localList.filter((g) => (g.event_slug || 'fauzi-nadiah') === cleanSlug);
+  return localList.filter((g) => g.event_slug === eventSlug);
 };
 
-export const getAllGuests = async (eventSlug = 'fauzi-nadiah') => {
+export const getAllGuests = async (eventSlug) => {
   return await getGuestsByEvent(eventSlug);
 };
 
 export const addOrUpdateGuest = async (eventSlug, guestData) => {
-  const cleanSlug = eventSlug || guestData.event_slug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug || guestData.event_slug;
   const slug = guestData.slug || createSlug(guestData.name);
   const qr_code_str = guestData.qr_code_str || generateQRToken(guestData.name);
   const food_quota = guestData.marital_status === 'married' ? 2 : 1;
@@ -255,7 +262,7 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
 };
 
 export const submitRSVP = async ({ eventSlug, guestName, slug, status, marital_status, wishes }) => {
-  const cleanSlug = eventSlug || 'fauzi-nadiah';
+  const cleanSlug = eventSlug;
   const food_quota = marital_status === 'married' ? 2 : 1;
   const qr_code_str = generateQRToken(guestName);
 

@@ -7,11 +7,11 @@ import QRScannerModal from './components/QRScannerModal';
 import MusicPlayer from './components/MusicPlayer';
 import DigitalEnvelope from './components/DigitalEnvelope';
 import MotionIntro from './components/MotionIntro';
-import { getWeddingSettings } from './services/store';
+import { getWeddingSettings, getAllEvents } from './services/store';
 import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
 export default function App() {
-  const [eventSlug, setEventSlug] = useState('fauzi-nadiah');
+  const [eventSlug, setEventSlug] = useState('');
   const [settings, setSettings] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
@@ -24,16 +24,29 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
-    // 1. Extract event_slug & guest name from URL query params
+    initApp();
+  }, []);
+
+  const initApp = async () => {
     const params = new URLSearchParams(window.location.search);
-    const evtParam = params.get('event') || params.get('acara') || 'fauzi-nadiah';
+    const evtParam = params.get('event') || params.get('acara');
     const toParam = params.get('to') || params.get('nama') || params.get('guest');
     const slugParam = params.get('slug');
 
-    setEventSlug(evtParam);
+    let activeEventSlug = evtParam;
 
-    // Fetch settings for this specific event
-    getWeddingSettings(evtParam).then(setSettings);
+    if (!activeEventSlug) {
+      const allEvts = await getAllEvents();
+      const availableSlugs = Object.keys(allEvts);
+      if (availableSlugs.length > 0) {
+        activeEventSlug = availableSlugs[0];
+      }
+    }
+
+    setEventSlug(activeEventSlug || '');
+
+    const currentSettings = await getWeddingSettings(activeEventSlug);
+    setSettings(currentSettings);
 
     if (toParam) {
       setGuestName(toParam);
@@ -53,12 +66,15 @@ export default function App() {
       setShowAdmin(true);
       setIsClientMode(true);
     }
-  }, []);
+  };
 
-  const reloadEventSettings = (slug) => {
+  const reloadEventSettings = async (slug) => {
     const targetSlug = slug || eventSlug;
     setEventSlug(targetSlug);
-    getWeddingSettings(targetSlug).then(setSettings);
+    const res = await getWeddingSettings(targetSlug);
+    if (res) {
+      setSettings(res);
+    }
   };
 
   const handleOpenInvitation = () => {
@@ -82,7 +98,7 @@ export default function App() {
   if (!settings) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-100 text-rosewood-900 font-serif text-lg font-bold">
-        Memuat Undangan Romantis...
+        Memuat Undangan...
       </div>
     );
   }
