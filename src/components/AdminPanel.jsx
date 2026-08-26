@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
-  Database, Music, CreditCard, Calendar, Sparkles, Check, Search, Share2, Layers 
+  Database, Music, CreditCard, Check, Search, Share2, Layers, ShieldCheck 
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
-  getGuestsByEvent, addOrUpdateGuest, deleteGuest, createSlug 
+  getGuestsByEvent, addOrUpdateGuest, deleteGuest 
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 
-export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, onSwitchEvent }) {
+export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent }) {
   const [eventsMap, setEventsMap] = useState({});
   const [selectedSlug, setSelectedSlug] = useState(currentEventSlug || 'fauzi-nadiah');
-  const [activeTab, setActiveTab] = useState('guests'); // 'guests' | 'settings' | 'new_event'
+  const [activeTab, setActiveTab] = useState('guests'); // Client mode strictly sees 'guests'
   const [settings, setSettingsState] = useState(null);
   const [guests, setGuests] = useState([]);
   const [newGuestName, setNewGuestName] = useState('');
@@ -21,7 +21,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
   const [copiedAdminLink, setCopiedAdminLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Event Form State
+  // New Event Form State (Super Admin Only)
   const [newEventData, setNewEventData] = useState({
     event_slug: '',
     groom_name: '',
@@ -110,7 +110,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
 
   const copyClientAdminLink = () => {
     const baseUrl = window.location.origin + window.location.pathname;
-    const url = `${baseUrl}?event=${selectedSlug}&admin=true`;
+    const url = `${baseUrl}?event=${selectedSlug}&client=true`;
     navigator.clipboard.writeText(url);
     setCopiedAdminLink(true);
     setTimeout(() => setCopiedAdminLink(false), 2500);
@@ -127,15 +127,20 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
     .reduce((acc, curr) => acc + (curr.food_quota || 1), 0);
   const totalRedeemed = guests.filter((g) => g.food_redeemed).length;
 
+  const groomTitle = settings?.groom_name?.split(',')[0] || 'Fauzi';
+  const brideTitle = settings?.bride_name?.split(',')[0] || 'Nadiah';
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 text-slate-100 selection:bg-rosewood-500 selection:text-white">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* TOP HEADER & EVENT SELECTOR DOCK */}
+        {/* TOP HEADER DOCK */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-rosewood-300/30">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-rose-300">
-                Dashboard Manajemen Multi-Acara
+                {isClientMode
+                  ? `Manajemen Tamu — ${groomTitle} & ${brideTitle}`
+                  : 'Dashboard Super Admin'}
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
                 isSupabaseConfigured() 
@@ -147,46 +152,54 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
               </span>
             </div>
 
-            {/* EVENT SELECTOR DROPDOWN */}
-            <div className="flex items-center gap-3 pt-1">
-              <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
-                <Layers className="w-4 h-4 text-rose-400" />
-                <span>Pilih Acara:</span>
-              </span>
-              <select
-                value={selectedSlug}
-                onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    setActiveTab('new_event');
-                  } else {
-                    setSelectedSlug(e.target.value);
-                    if (onSwitchEvent) onSwitchEvent(e.target.value);
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-slate-950 border border-rosewood-400/40 text-rose-200 text-xs font-bold focus:outline-none focus:border-rose-400"
-              >
-                {Object.keys(eventsMap).map((slug) => {
-                  const evt = eventsMap[slug];
-                  return (
-                    <option key={slug} value={slug}>
-                      💒 {evt.groom_name?.split(',')[0]} & {evt.bride_name?.split(',')[0]} ({slug})
-                    </option>
-                  );
-                })}
-                <option value="new">➕ Buat Acara Undangan Baru...</option>
-              </select>
-            </div>
+            {/* EVENT SELECTOR (SUPER ADMIN ONLY) */}
+            {!isClientMode ? (
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
+                  <Layers className="w-4 h-4 text-rose-400" />
+                  <span>Pilih Acara:</span>
+                </span>
+                <select
+                  value={selectedSlug}
+                  onChange={(e) => {
+                    if (e.target.value === 'new') {
+                      setActiveTab('new_event');
+                    } else {
+                      setSelectedSlug(e.target.value);
+                      if (onSwitchEvent) onSwitchEvent(e.target.value);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-950 border border-rosewood-400/40 text-rose-200 text-xs font-bold focus:outline-none focus:border-rose-400"
+                >
+                  {Object.keys(eventsMap).map((slug) => {
+                    const evt = eventsMap[slug];
+                    return (
+                      <option key={slug} value={slug}>
+                        💒 {evt.groom_name?.split(',')[0]} & {evt.bride_name?.split(',')[0]} ({slug})
+                      </option>
+                    );
+                  })}
+                  <option value="new">➕ Buat Acara Undangan Baru...</option>
+                </select>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">
+                Kelola daftar tamu, salin link WA, & lihat rekap porsi konsumsi untuk pernikahan Anda.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={copyClientAdminLink}
-              className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 font-bold text-xs flex items-center gap-2 transition"
-              title="Salin Link Kelola Khusus Klien"
-            >
-              {copiedAdminLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-              <span>{copiedAdminLink ? 'Link Klien Tersalin!' : 'Salin Link Admin Klien'}</span>
-            </button>
+            {!isClientMode && (
+              <button
+                onClick={copyClientAdminLink}
+                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 font-bold text-xs flex items-center gap-2 transition"
+                title="Salin Link Kelola Khusus Klien"
+              >
+                {copiedAdminLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                <span>{copiedAdminLink ? 'Link Klien Tersalin!' : 'Salin Link Klien'}</span>
+              </button>
+            )}
 
             <button
               onClick={onOpenScanner}
@@ -205,7 +218,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
           </div>
         </div>
 
-        {/* TAB NAVIGATION */}
+        {/* TAB NAVIGATION (SUPER ADMIN VS CLIENT MODE) */}
         <div className="flex border-b border-slate-800">
           <button
             onClick={() => setActiveTab('guests')}
@@ -219,32 +232,36 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
             <span>Manajemen Tamu ({totalGuests})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
-              activeTab === 'settings'
-                ? 'border-rosewood-500 text-rose-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Pengaturan Acara & Musik</span>
-          </button>
+          {!isClientMode && (
+            <>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
+                  activeTab === 'settings'
+                    ? 'border-rosewood-500 text-rose-300'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Pengaturan Acara & Musik</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab('new_event')}
-            className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
-              activeTab === 'new_event'
-                ? 'border-rosewood-500 text-rose-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>➕ Buat Acara Baru</span>
-          </button>
+              <button
+                onClick={() => setActiveTab('new_event')}
+                className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
+                  activeTab === 'new_event'
+                    ? 'border-rosewood-500 text-rose-300'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Plus className="w-4 h-4" />
+                <span>➕ Buat Acara Baru</span>
+              </button>
+            </>
+          )}
         </div>
 
-        {/* TAB 1: GUEST MANAGEMENT FOR SELECTED EVENT */}
+        {/* TAB 1: GUEST MANAGEMENT (ACCESSIBLE BY BOTH CLIENT & SUPER ADMIN) */}
         {activeTab === 'guests' && (
           <div className="space-y-6">
             {/* Stats Overview */}
@@ -275,7 +292,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
                   required
                   value={newGuestName}
                   onChange={(e) => setNewGuestName(e.target.value)}
-                  placeholder={`Masukkan Nama Tamu untuk Acara (${selectedSlug})...`}
+                  placeholder={`Masukkan Nama Tamu...`}
                   className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-400 text-xs"
                 />
                 <button
@@ -391,14 +408,13 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
           </div>
         )}
 
-        {/* TAB 2: SETTINGS FORM */}
-        {activeTab === 'settings' && settings && (
+        {/* TAB 2: SETTINGS FORM (SUPER ADMIN ONLY) */}
+        {!isClientMode && activeTab === 'settings' && settings && (
           <form onSubmit={handleSaveSettings} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
             <h2 className="text-xl font-serif font-bold text-rose-300 border-b border-slate-800 pb-3">
               Pengaturan Acara ({selectedSlug})
             </h2>
 
-            {/* Input YouTube Music */}
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
               <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
                 <Music className="w-4 h-4 text-rosewood-500" />
@@ -414,7 +430,6 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Mempelai Laki-laki */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-rose-400">Data Mempelai Pria</h3>
                 <div>
@@ -437,7 +452,6 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
                 </div>
               </div>
 
-              {/* Mempelai Wanita */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-rose-400">Data Mempelai Wanita</h3>
                 <div>
@@ -461,7 +475,6 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
               </div>
             </div>
 
-            {/* Rekening Amplop Digital */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
@@ -473,7 +486,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
                   <span className="text-xs font-bold text-slate-300">Bank 1 (BCA)</span>
                   <input
                     type="text"
-                    placeholder="Nama Bank (misal: Bank BCA)"
+                    placeholder="Nama Bank"
                     value={settings.bank_name || ''}
                     onChange={(e) => setSettingsState({ ...settings, bank_name: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
@@ -498,7 +511,7 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
                   <span className="text-xs font-bold text-slate-300">Bank 2 (Mandiri / E-Wallet)</span>
                   <input
                     type="text"
-                    placeholder="Nama Bank (misal: Bank Mandiri)"
+                    placeholder="Nama Bank"
                     value={settings.bank_name_2 || ''}
                     onChange={(e) => setSettingsState({ ...settings, bank_name_2: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
@@ -521,7 +534,6 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
               </div>
             </div>
 
-            {/* Save Button */}
             <div className="pt-4">
               <button
                 type="submit"
@@ -535,17 +547,14 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
           </form>
         )}
 
-        {/* TAB 3: CREATE NEW EVENT FORM */}
-        {activeTab === 'new_event' && (
+        {/* TAB 3: CREATE NEW EVENT (SUPER ADMIN ONLY) */}
+        {!isClientMode && activeTab === 'new_event' && (
           <form onSubmit={handleCreateNewEvent} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
             <div className="space-y-1 border-b border-slate-800 pb-3">
               <h2 className="text-xl font-serif font-bold text-rose-300 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-rose-400" />
                 <span>Buat Acara Pernikahan Baru</span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Tambahkan klien pernikahan baru. Setiap acara memiliki link undangan dan manajemen tamu terpisah.
-              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -569,29 +578,6 @@ export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, o
                   placeholder="Contoh: Rani Wijaya, S.E"
                   value={newEventData.bride_name}
                   onChange={(e) => setNewEventData({ ...newEventData, bride_name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-slate-300 block mb-1">Slug URL Acara (Opsional)</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: budi-rani"
-                  value={newEventData.event_slug}
-                  onChange={(e) => setNewEventData({ ...newEventData, event_slug: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-300 block mb-1">Tanggal Pernikahan</label>
-                <input
-                  type="date"
-                  value={newEventData.akad_date}
-                  onChange={(e) => setNewEventData({ ...newEventData, akad_date: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
                 />
               </div>

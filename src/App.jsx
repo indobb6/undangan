@@ -18,6 +18,7 @@ export default function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [showMotionIntro, setShowMotionIntro] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [isClientMode, setIsClientMode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [startMusic, setStartMusic] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -44,9 +45,13 @@ export default function App() {
       setGuestName('M Yaser');
     }
 
-    // Admin panel accessible via ?admin=true parameter
+    // Admin panel modes: ?admin=true (Super Admin) or ?client=true (Client Guest-Only Admin)
     if (params.get('admin') === 'true') {
       setShowAdmin(true);
+      setIsClientMode(false);
+    } else if (params.get('client') === 'true' || params.get('mode') === 'client') {
+      setShowAdmin(true);
+      setIsClientMode(true);
     }
   }, []);
 
@@ -153,10 +158,11 @@ export default function App() {
         )}
       </div>
 
-      {/* ADMIN PANEL MODAL (ACCESSIBLE VIA ?admin=true URL PARAMETER) */}
+      {/* ADMIN PANEL MODAL */}
       {showAdmin && (
         <AdminPanel
           currentEventSlug={eventSlug}
+          isClientMode={isClientMode}
           onClose={() => {
             setShowAdmin(false);
             reloadEventSettings(eventSlug);
