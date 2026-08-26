@@ -15,25 +15,23 @@ const GENERIC_EVENT_TEMPLATE = {
   resepsi_location: 'Lokasi Resepsi Nikah',
   google_maps_url: 'https://maps.google.com',
   music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
-  bank_name: 'Bank BCA',
+  bank_name: '',
   bank_account: '',
   bank_owner: '',
-  bank_name_2: 'Bank Mandiri',
+  bank_name_2: '',
   bank_account_2: '',
   bank_owner_2: ''
 };
 
-// LocalStorage helpers for Multi-Event (DEFAULT IS EMPTY MAP {})
+// ──────────────────────────────────────────────────
+// LocalStorage helpers (SINGLE SOURCE OF TRUTH)
+// ──────────────────────────────────────────────────
 const getLocalEventsMap = () => {
-  const data = localStorage.getItem('wedding_events_map');
-  if (data) {
-    try {
-      return JSON.parse(data);
-    } catch {
-      // fallback
-    }
-  }
-  return {}; // 100% EMPTY DEFAULT
+  try {
+    const raw = localStorage.getItem('wedding_events_map');
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
 };
 
 const saveLocalEventsMap = (map) => {
@@ -41,15 +39,20 @@ const saveLocalEventsMap = (map) => {
 };
 
 const getLocalGuests = () => {
-  const data = localStorage.getItem('wedding_guests');
-  return data ? JSON.parse(data) : [];
+  try {
+    const raw = localStorage.getItem('wedding_guests');
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return [];
 };
 
 const saveLocalGuests = (guests) => {
   localStorage.setItem('wedding_guests', JSON.stringify(guests));
 };
 
-// Generate helper slug
+// ──────────────────────────────────────────────────
+// Utility helpers
+// ──────────────────────────────────────────────────
 export const createSlug = (text) => {
   return text
     .toLowerCase()
@@ -59,7 +62,6 @@ export const createSlug = (text) => {
     .replace(/^-+|-+$/g, '');
 };
 
-// Generate random QR token
 export const generateQRToken = (name) => {
   const prefix = 'WED';
   const clean = name.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'GUEST';
@@ -67,96 +69,100 @@ export const generateQRToken = (name) => {
   return `${prefix}-${clean}-${rand}`;
 };
 
-// --- STORE SERVICE API ---
+// ──────────────────────────────────────────────────
+// EVENTS CRUD
+// ──────────────────────────────────────────────────
 
+/**
+ * Returns a merged map of events from localStorage + Supabase.
+ * localStorage is always treated as authoritative for recently-created events.
+ */
 export const getAllEvents = async () => {
+  // Start from whatever is in localStorage (includes freshly created events)
+  const localMap = getLocalEventsMap();
+
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.from('settings').select('*');
-      if (!error && data) {
-        const map = {};
+      if (!error && data && data.length > 0) {
+        // Merge Supabase data INTO local map (local wins on conflicts)
+        const merged = { ...localMap };
         data.forEach((evt) => {
-          map[evt.event_slug || evt.id] = evt;
+          const key = evt.event_slug || evt.id;
+          if (!merged[key]) {
+            merged[key] = evt;
+          }
         });
-        saveLocalEventsMap(map);
-        return map;
+        saveLocalEventsMap(merged);
+        return merged;
       }
     } catch (e) {
-      console.warn('Supabase fetch events failed', e);
+      console.warn('Supabase fetch events failed, using local data', e);
     }
   }
-  return getLocalEventsMap();
+
+  return localMap;
 };
 
 export const getWeddingSettings = async (eventSlug) => {
-  const allEvents = await getAllEvents();
-  const availableSlugs = Object.keys(allEvents);
-  
-  // Target slug logic: if eventSlug is passed, use it. Otherwise pick the first event in allEvents.
-  const cleanSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
+  // 1. Quick local lookup first (0ms)
+  const localMap = getLocalEventsMap();
+  const availableSlugs = Object.keys(localMap);
 
-  if (cleanSlug && isSupabaseConfigured()) {
+  const targetSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
+
+  if (targetSlug && localMap[targetSlug]) {
+    return localMap[targetSlug];
+  }
+
+  // 2. Try Supabase if not found locally
+  if (targetSlug && isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .eq('event_slug', cleanSlug)
+        .eq('event_slug', targetSlug)
         .maybeSingle();
       if (!error && data) return data;
-
-      const { data: dataId, error: errorId } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('id', cleanSlug)
-        .maybeSingle();
-      if (!errorId && dataId) return dataId;
     } catch (e) {
       console.warn('Supabase fetch settings error:', e);
     }
   }
 
-  if (cleanSlug && allEvents[cleanSlug]) {
-    return allEvents[cleanSlug];
-  }
-
-  // If cleanSlug exists but not found in map yet
-  if (cleanSlug) {
-    return {
-      ...GENERIC_EVENT_TEMPLATE,
-      id: cleanSlug,
-      event_slug: cleanSlug
-    };
-  }
-
-  // If absolutely zero events exist yet, return generic initial template
+  // 3. Return a generic placeholder so the UI never gets stuck on null
   return {
     ...GENERIC_EVENT_TEMPLATE,
-    id: 'sample-event',
-    event_slug: 'sample-event'
+    id: targetSlug || 'sample',
+    event_slug: targetSlug || 'sample'
   };
 };
 
 export const createNewEvent = async (eventData) => {
-  const event_slug = createSlug(eventData.event_slug || `${eventData.groom_name}-${eventData.bride_name}`);
+  const event_slug = createSlug(
+    eventData.event_slug || `${eventData.groom_name}-${eventData.bride_name}`
+  );
+
   const record = {
     ...GENERIC_EVENT_TEMPLATE,
     ...eventData,
     id: event_slug,
-    event_slug: event_slug,
+    event_slug,
+    akad_date: eventData.akad_date || '2026-09-20',
+    resepsi_date: eventData.akad_date || '2026-09-20',
     updated_at: new Date().toISOString()
   };
 
-  // 1. Save to LocalStorage IMMEDIATELY so dropdown updates with 0 ms delay
+  // ★ Save to localStorage FIRST so getAllEvents sees it immediately
   const eventsMap = getLocalEventsMap();
   eventsMap[event_slug] = record;
   saveLocalEventsMap(eventsMap);
 
-  // 2. Save to Supabase in background
+  // Then attempt Supabase (non-blocking for UI)
   if (isSupabaseConfigured()) {
     try {
       await supabase.from('settings').upsert(record, { onConflict: 'id' });
     } catch (e) {
-      console.error('Supabase create event failed:', e);
+      console.error('Supabase create event failed (local still saved):', e);
     }
   }
 
@@ -172,18 +178,14 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
     updated_at: new Date().toISOString()
   };
 
-  // 1. Save locally immediately
+  // Save locally first
   const eventsMap = getLocalEventsMap();
   eventsMap[cleanSlug] = updated;
   saveLocalEventsMap(eventsMap);
 
-  // 2. Save to Supabase
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert(updated, { onConflict: 'id' });
-      if (error) console.error('Error saving settings to Supabase:', error);
+      await supabase.from('settings').upsert(updated, { onConflict: 'id' });
     } catch (e) {
       console.error('Supabase save settings failed:', e);
     }
@@ -192,8 +194,13 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
   return updated;
 };
 
+// ──────────────────────────────────────────────────
+// GUESTS CRUD
+// ──────────────────────────────────────────────────
+
 export const getGuestsByEvent = async (eventSlug) => {
   if (!eventSlug) return [];
+
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
@@ -203,15 +210,15 @@ export const getGuestsByEvent = async (eventSlug) => {
         .order('created_at', { ascending: false });
       if (!error && data) return data;
     } catch (e) {
-      console.warn('Supabase fetch guests failed, using local fallback', e);
+      console.warn('Supabase fetch guests failed', e);
     }
   }
-  const localList = getLocalGuests();
-  return localList.filter((g) => g.event_slug === eventSlug);
+
+  return getLocalGuests().filter((g) => g.event_slug === eventSlug);
 };
 
 export const getAllGuests = async (eventSlug) => {
-  return await getGuestsByEvent(eventSlug);
+  return getGuestsByEvent(eventSlug);
 };
 
 export const addOrUpdateGuest = async (eventSlug, guestData) => {
@@ -230,11 +237,13 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
     created_at: guestData.created_at || new Date().toISOString()
   };
 
-  // Local storage save first
+  // Save local first
   const localList = getLocalGuests();
-  const index = localList.findIndex((g) => g.id === record.id || (g.event_slug === cleanSlug && g.slug === record.slug));
-  if (index >= 0) {
-    localList[index] = { ...localList[index], ...record };
+  const idx = localList.findIndex(
+    (g) => g.id === record.id || (g.event_slug === cleanSlug && g.slug === record.slug)
+  );
+  if (idx >= 0) {
+    localList[idx] = { ...localList[idx], ...record };
   } else {
     if (!record.id) record.id = 'g-' + Date.now();
     localList.unshift(record);
@@ -244,14 +253,11 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
   if (isSupabaseConfigured()) {
     try {
       if (record.id && !record.id.startsWith('g-')) {
-        const { error } = await supabase.from('guests').upsert(record);
-        if (error) console.error('Supabase guest upsert error:', error);
+        await supabase.from('guests').upsert(record);
       } else {
-        const { id, ...newRecord } = record;
-        const { data, error } = await supabase.from('guests').insert(newRecord).select().single();
-        if (!error && data) {
-          record.id = data.id;
-        }
+        const { id, ...newRec } = record;
+        const { data } = await supabase.from('guests').insert(newRec).select().single();
+        if (data) record.id = data.id;
       }
     } catch (e) {
       console.error('Supabase guest save failed:', e);
@@ -263,83 +269,75 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
 
 export const submitRSVP = async ({ eventSlug, guestName, slug, status, marital_status, wishes }) => {
   const cleanSlug = eventSlug;
-  const food_quota = marital_status === 'married' ? 2 : 1;
   const qr_code_str = generateQRToken(guestName);
 
   const guests = await getGuestsByEvent(cleanSlug);
-  const existingGuest = guests.find((g) => g.slug === slug || g.name.toLowerCase() === guestName.toLowerCase());
+  const existing = guests.find(
+    (g) => g.slug === slug || g.name.toLowerCase() === guestName.toLowerCase()
+  );
 
-  const guestPayload = {
-    id: existingGuest ? existingGuest.id : undefined,
+  return addOrUpdateGuest(cleanSlug, {
+    id: existing?.id,
     event_slug: cleanSlug,
     name: guestName,
     slug: slug || createSlug(guestName),
-    status: status,
-    marital_status: marital_status,
-    food_quota: food_quota,
-    qr_code_str: existingGuest?.qr_code_str || qr_code_str,
-    food_redeemed: existingGuest?.food_redeemed || false,
+    status,
+    marital_status,
+    food_quota: marital_status === 'married' ? 2 : 1,
+    qr_code_str: existing?.qr_code_str || qr_code_str,
+    food_redeemed: existing?.food_redeemed || false,
     wishes: wishes || '',
-    created_at: existingGuest?.created_at || new Date().toISOString()
-  };
-
-  return await addOrUpdateGuest(cleanSlug, guestPayload);
+    created_at: existing?.created_at || new Date().toISOString()
+  });
 };
 
 export const getGuestByQR = async (qrToken) => {
-  const cleanToken = qrToken.trim().toUpperCase();
+  const clean = qrToken.trim().toUpperCase();
+
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('guests')
         .select('*')
-        .ilike('qr_code_str', cleanToken)
+        .ilike('qr_code_str', clean)
         .single();
-      if (!error && data) return data;
-    } catch (e) {
-      console.warn('Supabase fetch guest by QR error', e);
-    }
+      if (data) return data;
+    } catch { /* fallback */ }
   }
-  const guests = getLocalGuests();
-  return guests.find((g) => g.qr_code_str.toUpperCase() === cleanToken) || null;
+
+  return getLocalGuests().find((g) => g.qr_code_str.toUpperCase() === clean) || null;
 };
 
 export const redeemFoodVoucher = async (guestId) => {
   const now = new Date().toISOString();
+
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('guests')
         .update({ food_redeemed: true, redeemed_at: now })
         .eq('id', guestId)
         .select()
         .single();
-      if (!error && data) return data;
-    } catch (e) {
-      console.error('Supabase redeem voucher error:', e);
-    }
+      if (data) return data;
+    } catch { /* fallback */ }
   }
 
-  const localGuests = getLocalGuests();
-  const index = localGuests.findIndex((g) => g.id === guestId);
-  if (index >= 0) {
-    localGuests[index].food_redeemed = true;
-    localGuests[index].redeemed_at = now;
-    saveLocalGuests(localGuests);
-    return localGuests[index];
+  const list = getLocalGuests();
+  const idx = list.findIndex((g) => g.id === guestId);
+  if (idx >= 0) {
+    list[idx].food_redeemed = true;
+    list[idx].redeemed_at = now;
+    saveLocalGuests(list);
+    return list[idx];
   }
   return null;
 };
 
 export const deleteGuest = async (guestId) => {
   if (isSupabaseConfigured()) {
-    try {
-      await supabase.from('guests').delete().eq('id', guestId);
-    } catch (e) {
-      console.error('Supabase delete guest failed', e);
-    }
+    try { await supabase.from('guests').delete().eq('id', guestId); } catch { /* ignore */ }
   }
-  const localGuests = getLocalGuests().filter((g) => g.id !== guestId);
-  saveLocalGuests(localGuests);
+  saveLocalGuests(getLocalGuests().filter((g) => g.id !== guestId));
   return true;
 };

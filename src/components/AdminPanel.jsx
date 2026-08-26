@@ -71,9 +71,11 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     e.preventDefault();
     if (!selectedSlug) return;
     setIsSaving(true);
-    await saveWeddingSettings(selectedSlug, settings);
+    const updated = await saveWeddingSettings(selectedSlug, settings);
     setIsSaving(false);
-    await loadAllEventsData();
+    // ★ Langsung update state React
+    setEventsMap((prev) => ({ ...prev, [selectedSlug]: updated }));
+    setSettingsState(updated);
     alert(`Pengaturan acara "${settings.groom_name} & ${settings.bride_name}" berhasil disimpan!`);
   };
 
@@ -82,12 +84,16 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     if (!newEventData.groom_name || !newEventData.bride_name) return;
 
     const created = await createNewEvent(newEventData);
-    await loadAllEventsData();
+
+    // ★ Langsung update state React tanpa menunggu re-fetch async
+    setEventsMap((prev) => ({ ...prev, [created.event_slug]: created }));
     setSelectedSlug(created.event_slug);
+    setSettingsState(created);
+    setGuests([]);
     setActiveTab('guests');
     setNewEventData({ event_slug: '', groom_name: '', bride_name: '', akad_date: '2026-09-20' });
     if (onSwitchEvent) onSwitchEvent(created.event_slug);
-    alert(`Acara pernikahan baru "${created.groom_name} & ${created.bride_name}" berhasil dibuat!`);
+    alert(`Acara "${created.groom_name} & ${created.bride_name}" berhasil dibuat!`);
   };
 
   const handleAddGuest = async (e) => {
