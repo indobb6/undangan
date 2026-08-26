@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import confetti from 'canvas-confetti';
-import { QrCode, X, Search, CheckCircle2, AlertTriangle, RefreshCw, Utensils, Ticket } from 'lucide-react';
+import { QrCode, X, Search, CheckCircle2, AlertTriangle, RefreshCw, Utensils, Ticket, Camera, SwitchCamera } from 'lucide-react';
 import { getGuestByQR, redeemFoodVoucher } from '../services/store';
 
 export default function QRScannerModal({ onClose }) {
@@ -9,41 +9,93 @@ export default function QRScannerModal({ onClose }) {
   const [scannedGuest, setScannedGuest] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const [scannerActive, setScannerActive] = useState(true);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
-  const scannerRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
 
   useEffect(() => {
-    let scanner = null;
+    let isMounted = true;
 
-    if (scannerActive) {
-      scanner = new Html5QrcodeScanner(
-        'qr-reader',
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-
-      scanner.render(
-        (decodedText) => {
-          handleVerifyQR(decodedText);
-          if (scanner) {
-            scanner.clear().catch(console.error);
-            setScannerActive(false);
-          }
-        },
-        (error) => {
-          // Ignore frame errors
+    // Discover available cameras
+    Html5Qrcode.getCameras()
+      .then((deviceList) => {
+        if (!isMounted) return;
+        if (deviceList && deviceList.length > 0) {
+          setCameras(deviceList);
+          // Prefer back/environment camera if available
+          const backCam = deviceList.find(
+            (c) => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('environment')
+          );
+          setSelectedCameraId(backCam ? backCam.id : deviceList[0].id);
+        } else {
+          setCameraError('Tidak ada kamera yang terdeteksi di perangkat Anda.');
         }
-      );
-      scannerRef.current = scanner;
-    }
+      })
+      .catch((err) => {
+        console.error('Camera discovery error:', err);
+        if (isMounted) {
+          setCameraError('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di browser dan situs diakses via HTTPS / localhost.');
+        }
+      });
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
-      }
+      isMounted = false;
+      stopScanner();
     };
-  }, [scannerActive]);
+  }, []);
+
+  const startScanner = async (cameraId) => {
+    setCameraError(null);
+    setErrorMessage('');
+
+    // Stop existing instance if any
+    await stopScanner();
+
+    try {
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCodeRef.current = html5QrCode;
+
+      const cameraConfig = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: 'environment' };
+
+      await html5QrCode.start(
+        cameraConfig,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          handleVerifyQR(decodedText);
+          stopScanner();
+        },
+        (error) => {
+          // Ignore scanning frame errors
+        }
+      );
+      setIsScanning(true);
+    } catch (err) {
+      console.error('Failed to start camera:', err);
+      setCameraError(`Gagal membuka kamera (${err?.message || err}). Silakan coba pilih kamera lain atau gunakan input manual.`);
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        html5QrCodeRef.current.clear();
+      } catch (e) {
+        console.warn('Stop scanner warning:', e);
+      }
+      html5QrCodeRef.current = null;
+    }
+    setIsScanning(false);
+  };
 
   const handleVerifyQR = async (code) => {
     setErrorMessage('');
@@ -88,15 +140,20 @@ export default function QRScannerModal({ onClose }) {
     setScannedGuest(null);
     setErrorMessage('');
     setManualCode('');
-    setScannerActive(true);
+    if (selectedCameraId) {
+      startScanner(selectedCameraId);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 selection:bg-gold-500 selection:text-slate-900">
-      <div className="glass-card-gold w-full max-w-lg rounded-3xl border border-gold-500/40 p-6 sm:p-8 space-y-6 shadow-2xl relative">
+      <div className="glass-card-gold w-full max-w-lg rounded-3xl border border-gold-500/40 p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={() => {
+            stopScanner();
+            onClose();
+          }}
           className="absolute top-5 right-5 p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition"
         >
           <X className="w-5 h-5" />
@@ -116,22 +173,64 @@ export default function QRScannerModal({ onClose }) {
         {/* CAMERA SCANNER DISPLAY */}
         {!scannedGuest && (
           <div className="space-y-4">
-            <div className="bg-slate-900 p-2 rounded-2xl border border-gold-500/20 overflow-hidden min-h-[260px] flex items-center justify-center">
-              {scannerActive ? (
-                <div id="qr-reader" className="w-full font-sans text-xs text-slate-300" />
-              ) : (
-                <button
-                  onClick={() => setScannerActive(true)}
-                  className="py-3 px-6 rounded-xl bg-gold-500 text-slate-950 font-bold text-xs flex items-center gap-2"
+            {/* Camera Select Dropdown / Trigger */}
+            {cameras.length > 0 && (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedCameraId}
+                  onChange={(e) => {
+                    setSelectedCameraId(e.target.value);
+                    startScanner(e.target.value);
+                  }}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-gold-500"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Aktifkan Kamera Kembali</span>
+                  {cameras.map((cam) => (
+                    <option key={cam.id} value={cam.id}>
+                      📷 {cam.label || `Kamera ${cam.id.slice(0, 5)}`}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => startScanner(selectedCameraId)}
+                  className="py-2 px-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>{isScanning ? 'Mulai Ulang' : 'Buka Kamera'}</span>
                 </button>
+              </div>
+            )}
+
+            {/* Video Viewport Container */}
+            <div className="bg-slate-900 p-2 rounded-2xl border border-gold-500/20 overflow-hidden min-h-[260px] relative flex flex-col items-center justify-center">
+              <div id="qr-reader" className="w-full text-xs text-slate-300" />
+
+              {!isScanning && !cameraError && (
+                <div className="text-center p-6 space-y-3">
+                  <Camera className="w-12 h-12 text-gold-400 mx-auto animate-bounce" />
+                  <p className="text-xs text-slate-300">
+                    Klik tombol di bawah ini untuk mengaktifkan kamera scanner QR.
+                  </p>
+                  <button
+                    onClick={() => startScanner(selectedCameraId)}
+                    className="py-2.5 px-6 rounded-xl bg-gold-500 text-slate-950 font-bold text-xs inline-flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Izinkan & Buka Kamera</span>
+                  </button>
+                </div>
+              )}
+
+              {cameraError && (
+                <div className="p-4 text-center text-xs text-amber-300 space-y-2">
+                  <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+                  <p>{cameraError}</p>
+                </div>
               )}
             </div>
 
             {/* Manual Code Input */}
-            <form onSubmit={handleManualSubmit} className="space-y-2">
+            <form onSubmit={handleManualSubmit} className="space-y-2 pt-2 border-t border-slate-800">
               <label className="text-xs text-slate-300 block font-semibold">
                 Atau Masukkan Kode QR Manual:
               </label>

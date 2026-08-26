@@ -2,29 +2,37 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DEFAULT_SETTINGS = {
   id: 'default',
-  groom_name: 'Rizky Pratama, S.Kom',
-  bride_name: 'Anisa Rahmawati, S.E',
+  groom_name: 'Fauzi Pratama, S.Kom',
+  bride_name: 'Nadiah Rahmawati, S.E',
   groom_parents: 'Putra dari Bp. H. Ahmad & Ibu Hj. Siti',
   bride_parents: 'Putri dari Bp. H. Budi & Ibu Hj. Dewi',
-  akad_date: '2026-09-12',
+  groom_instagram: '@fauzi',
+  bride_instagram: '@nadiah',
+  akad_date: '2026-08-29',
   akad_time: '08:00 WIB - Selesai',
   akad_location: 'Masjid Agung Al-Azhar, Kebayoran Baru, Jakarta Selatan',
-  resepsi_date: '2026-09-12',
+  resepsi_date: '2026-08-29',
   resepsi_time: '11:00 - 14:00 WIB',
   resepsi_location: 'Ballroom Hotel Grand Mahakam, Jakarta Selatan',
   google_maps_url: 'https://maps.google.com',
-  music_url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'
+  music_url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
+  bank_name: 'Bank BCA',
+  bank_account: '1234567890',
+  bank_owner: 'Fauzi Pratama',
+  bank_name_2: 'Bank Mandiri',
+  bank_account_2: '0987654321',
+  bank_owner_2: 'Nadiah Rahmawati'
 };
 
 const DEFAULT_GUESTS = [
   {
     id: 'g-1',
-    name: 'Budi Santoso',
-    slug: 'budi-santoso',
+    name: 'M Yaser',
+    slug: 'm-yaser',
     status: 'pending',
     marital_status: 'single',
     food_quota: 1,
-    qr_code_str: 'WED-BUDI-1234',
+    qr_code_str: 'WED-YASE-1234',
     food_redeemed: false,
     redeemed_at: null,
     wishes: '',
@@ -32,15 +40,15 @@ const DEFAULT_GUESTS = [
   },
   {
     id: 'g-2',
-    name: 'Drs. Hendra & Istri',
-    slug: 'hendra-istri',
+    name: 'Budi Santoso & Istri',
+    slug: 'budi-santoso',
     status: 'hadir',
     marital_status: 'married',
     food_quota: 2,
-    qr_code_str: 'WED-HEND-5678',
+    qr_code_str: 'WED-BUDI-5678',
     food_redeemed: false,
     redeemed_at: null,
-    wishes: 'Selamat menempuh hidup baru, semoga sakinah mawaddah warahmah!',
+    wishes: 'Selamat menempuh hidup baru, semoga menjadi keluarga sakinah mawaddah warahmah!',
     created_at: new Date().toISOString()
   }
 ];
