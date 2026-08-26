@@ -1,34 +1,41 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DEFAULT_EVENT_TEMPLATE = {
-  id: 'default-event',
-  event_slug: 'default-event',
-  groom_name: 'Nama Mempelai Pria',
-  bride_name: 'Nama Mempelai Wanita',
-  groom_parents: 'Putra dari Bapak & Ibu...',
-  bride_parents: 'Putri dari Bapak & Ibu...',
-  groom_instagram: '',
-  bride_instagram: '',
-  akad_date: '2026-09-20',
+  id: 'fauzi-nadiah',
+  event_slug: 'fauzi-nadiah',
+  groom_name: 'Fauzi Pratama, S.Kom',
+  bride_name: 'Nadiah Rahmawati, S.E',
+  groom_parents: 'Putra dari Bp. H. Ahmad & Ibu Hj. Siti',
+  bride_parents: 'Putri dari Bp. H. Budi & Ibu Hj. Dewi',
+  groom_instagram: '@fauzi',
+  bride_instagram: '@nadiah',
+  akad_date: '2026-08-29',
   akad_time: '08:00 WIB - Selesai',
-  akad_location: 'Lokasi Akad Nikah',
-  resepsi_date: '2026-09-20',
+  akad_location: 'Masjid Agung Al-Azhar, Kebayoran Baru, Jakarta Selatan',
+  resepsi_date: '2026-08-29',
   resepsi_time: '11:00 - 14:00 WIB',
-  resepsi_location: 'Lokasi Resepsi Nikah',
+  resepsi_location: 'Ballroom Hotel Grand Mahakam, Jakarta Selatan',
   google_maps_url: 'https://maps.google.com',
   music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
   bank_name: 'Bank BCA',
-  bank_account: '',
-  bank_owner: '',
+  bank_account: '1234567890',
+  bank_owner: 'Fauzi Pratama',
   bank_name_2: 'Bank Mandiri',
-  bank_account_2: '',
-  bank_owner_2: ''
+  bank_account_2: '0987654321',
+  bank_owner_2: 'Nadiah Rahmawati'
 };
 
 // LocalStorage helpers for Multi-Event
 const getLocalEventsMap = () => {
   const data = localStorage.getItem('wedding_events_map');
-  return data ? JSON.parse(data) : {};
+  if (data) {
+    try {
+      return JSON.parse(data);
+    } catch {
+      // fallback
+    }
+  }
+  return { 'fauzi-nadiah': DEFAULT_EVENT_TEMPLATE };
 };
 
 const saveLocalEventsMap = (map) => {
@@ -73,6 +80,8 @@ export const getAllEvents = async () => {
         data.forEach((evt) => {
           map[evt.event_slug || evt.id] = evt;
         });
+        // Also sync local storage
+        saveLocalEventsMap(map);
         return map;
       }
     } catch (e) {
@@ -82,30 +91,42 @@ export const getAllEvents = async () => {
   return getLocalEventsMap();
 };
 
-export const getWeddingSettings = async (eventSlug) => {
-  const allEvents = await getAllEvents();
-  const availableSlugs = Object.keys(allEvents);
-  
-  const targetSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
+export const getWeddingSettings = async (eventSlug = 'fauzi-nadiah') => {
+  const cleanSlug = eventSlug || 'fauzi-nadiah';
 
-  if (!targetSlug) {
-    return null;
-  }
-
+  // 1. Try Supabase first if configured
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .or(`id.eq.${targetSlug},event_slug.eq.${targetSlug}`)
-        .single();
+        .eq('event_slug', cleanSlug)
+        .maybeSingle();
       if (!error && data) return data;
+
+      const { data: dataId, error: errorId } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('id', cleanSlug)
+        .maybeSingle();
+      if (!errorId && dataId) return dataId;
     } catch (e) {
-      console.warn('Supabase fetch settings failed, falling back to local storage', e);
+      console.warn('Supabase fetch settings error:', e);
     }
   }
 
-  return allEvents[targetSlug] || null;
+  // 2. Check local storage
+  const eventsMap = getLocalEventsMap();
+  if (eventsMap[cleanSlug]) return eventsMap[cleanSlug];
+
+  // 3. Fallback to clean template with cleanSlug (NEVER return null)
+  return {
+    ...DEFAULT_EVENT_TEMPLATE,
+    id: cleanSlug,
+    event_slug: cleanSlug,
+    groom_name: 'Mempelai Pria',
+    bride_name: 'Mempelai Wanita'
+  };
 };
 
 export const createNewEvent = async (eventData) => {
@@ -118,6 +139,12 @@ export const createNewEvent = async (eventData) => {
     updated_at: new Date().toISOString()
   };
 
+  // 1. Save to LocalStorage IMMEDIATELY so UI updates with 0 latency
+  const eventsMap = getLocalEventsMap();
+  eventsMap[event_slug] = record;
+  saveLocalEventsMap(eventsMap);
+
+  // 2. Save to Supabase in background
   if (isSupabaseConfigured()) {
     try {
       await supabase.from('settings').upsert(record, { onConflict: 'id' });
@@ -126,14 +153,11 @@ export const createNewEvent = async (eventData) => {
     }
   }
 
-  const eventsMap = getLocalEventsMap();
-  eventsMap[event_slug] = record;
-  saveLocalEventsMap(eventsMap);
   return record;
 };
 
 export const saveWeddingSettings = async (eventSlug, newSettings) => {
-  const cleanSlug = eventSlug || newSettings.event_slug;
+  const cleanSlug = eventSlug || newSettings.event_slug || 'fauzi-nadiah';
   const updated = {
     ...newSettings,
     id: cleanSlug,
@@ -141,6 +165,12 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
     updated_at: new Date().toISOString()
   };
 
+  // 1. Save locally immediately
+  const eventsMap = getLocalEventsMap();
+  eventsMap[cleanSlug] = updated;
+  saveLocalEventsMap(eventsMap);
+
+  // 2. Save to Supabase
   if (isSupabaseConfigured()) {
     try {
       const { error } = await supabase
@@ -152,20 +182,17 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
     }
   }
 
-  const eventsMap = getLocalEventsMap();
-  eventsMap[cleanSlug] = updated;
-  saveLocalEventsMap(eventsMap);
   return updated;
 };
 
-export const getGuestsByEvent = async (eventSlug) => {
-  if (!eventSlug) return [];
+export const getGuestsByEvent = async (eventSlug = 'fauzi-nadiah') => {
+  const cleanSlug = eventSlug || 'fauzi-nadiah';
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('guests')
         .select('*')
-        .eq('event_slug', eventSlug)
+        .eq('event_slug', cleanSlug)
         .order('created_at', { ascending: false });
       if (!error && data) return data;
     } catch (e) {
@@ -173,15 +200,15 @@ export const getGuestsByEvent = async (eventSlug) => {
     }
   }
   const localList = getLocalGuests();
-  return localList.filter((g) => g.event_slug === eventSlug);
+  return localList.filter((g) => (g.event_slug || 'fauzi-nadiah') === cleanSlug);
 };
 
-export const getAllGuests = async (eventSlug) => {
+export const getAllGuests = async (eventSlug = 'fauzi-nadiah') => {
   return await getGuestsByEvent(eventSlug);
 };
 
 export const addOrUpdateGuest = async (eventSlug, guestData) => {
-  const cleanSlug = eventSlug || guestData.event_slug;
+  const cleanSlug = eventSlug || guestData.event_slug || 'fauzi-nadiah';
   const slug = guestData.slug || createSlug(guestData.name);
   const qr_code_str = guestData.qr_code_str || generateQRToken(guestData.name);
   const food_quota = guestData.marital_status === 'married' ? 2 : 1;
@@ -195,6 +222,17 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
     food_redeemed: guestData.food_redeemed ?? false,
     created_at: guestData.created_at || new Date().toISOString()
   };
+
+  // Local storage save first
+  const localList = getLocalGuests();
+  const index = localList.findIndex((g) => g.id === record.id || (g.event_slug === cleanSlug && g.slug === record.slug));
+  if (index >= 0) {
+    localList[index] = { ...localList[index], ...record };
+  } else {
+    if (!record.id) record.id = 'g-' + Date.now();
+    localList.unshift(record);
+  }
+  saveLocalGuests(localList);
 
   if (isSupabaseConfigured()) {
     try {
@@ -213,22 +251,11 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
     }
   }
 
-  // Update local storage
-  const localList = getLocalGuests();
-  const index = localList.findIndex((g) => g.id === record.id || (g.event_slug === cleanSlug && g.slug === record.slug));
-  if (index >= 0) {
-    localList[index] = { ...localList[index], ...record };
-  } else {
-    if (!record.id) record.id = 'g-' + Date.now();
-    localList.unshift(record);
-  }
-  saveLocalGuests(localList);
-
   return record;
 };
 
 export const submitRSVP = async ({ eventSlug, guestName, slug, status, marital_status, wishes }) => {
-  const cleanSlug = eventSlug;
+  const cleanSlug = eventSlug || 'fauzi-nadiah';
   const food_quota = marital_status === 'married' ? 2 : 1;
   const qr_code_str = generateQRToken(guestName);
 
