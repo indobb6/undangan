@@ -1,50 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
-  Database, ExternalLink, Ticket, Search, Check, Music, CreditCard 
+  Database, Music, CreditCard, Calendar, Sparkles, Check, Search, Share2, Layers 
 } from 'lucide-react';
 import { 
-  getWeddingSettings, saveWeddingSettings, 
-  getAllGuests, addOrUpdateGuest, deleteGuest 
+  getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
+  getGuestsByEvent, addOrUpdateGuest, deleteGuest, createSlug 
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 
-export default function AdminPanel({ onClose, onOpenScanner }) {
-  const [activeTab, setActiveTab] = useState('guests');
+export default function AdminPanel({ currentEventSlug, onClose, onOpenScanner, onSwitchEvent }) {
+  const [eventsMap, setEventsMap] = useState({});
+  const [selectedSlug, setSelectedSlug] = useState(currentEventSlug || 'fauzi-nadiah');
+  const [activeTab, setActiveTab] = useState('guests'); // 'guests' | 'settings' | 'new_event'
   const [settings, setSettingsState] = useState(null);
   const [guests, setGuests] = useState([]);
   const [newGuestName, setNewGuestName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedSlug, setCopiedSlug] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [copiedAdminLink, setCopiedAdminLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // New Event Form State
+  const [newEventData, setNewEventData] = useState({
+    event_slug: '',
+    groom_name: '',
+    bride_name: '',
+    akad_date: '2026-09-20'
+  });
+
   useEffect(() => {
-    loadData();
+    loadAllEventsData();
   }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    const setRes = await getWeddingSettings();
-    const guestRes = await getAllGuests();
+  useEffect(() => {
+    if (selectedSlug) {
+      loadEventSpecificData(selectedSlug);
+    }
+  }, [selectedSlug]);
+
+  const loadAllEventsData = async () => {
+    const allEvts = await getAllEvents();
+    setEventsMap(allEvts);
+    if (!allEvts[selectedSlug]) {
+      const firstSlug = Object.keys(allEvts)[0] || 'fauzi-nadiah';
+      setSelectedSlug(firstSlug);
+    }
+  };
+
+  const loadEventSpecificData = async (slug) => {
+    const setRes = await getWeddingSettings(slug);
+    const guestRes = await getGuestsByEvent(slug);
     setSettingsState(setRes);
     setGuests(guestRes);
-    setIsLoading(false);
   };
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    await saveWeddingSettings(settings);
+    await saveWeddingSettings(selectedSlug, settings);
     setIsSaving(false);
-    alert('Pengaturan acara & musik berhasil disimpan!');
+    alert(`Pengaturan acara "${settings.groom_name} & ${settings.bride_name}" berhasil disimpan!`);
+  };
+
+  const handleCreateNewEvent = async (e) => {
+    e.preventDefault();
+    if (!newEventData.groom_name || !newEventData.bride_name) return;
+
+    const created = await createNewEvent(newEventData);
+    await loadAllEventsData();
+    setSelectedSlug(created.event_slug);
+    setActiveTab('guests');
+    setNewEventData({ event_slug: '', groom_name: '', bride_name: '', akad_date: '2026-09-20' });
+    if (onSwitchEvent) onSwitchEvent(created.event_slug);
+    alert(`Acara pernikahan baru "${created.groom_name} & ${created.bride_name}" berhasil dibuat!`);
   };
 
   const handleAddGuest = async (e) => {
     e.preventDefault();
     if (!newGuestName.trim()) return;
 
-    const added = await addOrUpdateGuest({
+    const added = await addOrUpdateGuest(selectedSlug, {
       name: newGuestName.trim(),
       status: 'pending',
       marital_status: 'single',
@@ -64,12 +100,20 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
 
   const copyInvitationLink = (guest) => {
     const baseUrl = window.location.origin + window.location.pathname;
-    const url = `${baseUrl}?to=${encodeURIComponent(guest.name)}`;
+    const url = `${baseUrl}?event=${selectedSlug}&to=${encodeURIComponent(guest.name)}`;
     const text = `Kepada Yth. Bapak/Ibu/Saudara/i ${guest.name},\n\nTanpa mengurangi rasa hormat, kami mengundang Anda untuk hadir pada acara pernikahan kami.\n\nDetail & Konfirmasi Kehadiran dapat diakses pada link berikut:\n${url}\n\nTerima kasih.`;
 
     navigator.clipboard.writeText(text);
     setCopiedSlug(guest.slug);
     setTimeout(() => setCopiedSlug(null), 2500);
+  };
+
+  const copyClientAdminLink = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}?event=${selectedSlug}&admin=true`;
+    navigator.clipboard.writeText(url);
+    setCopiedAdminLink(true);
+    setTimeout(() => setCopiedAdminLink(false), 2500);
   };
 
   const filteredGuests = guests.filter((g) =>
@@ -86,12 +130,12 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 text-slate-100 selection:bg-rosewood-500 selection:text-white">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Top Header Bar */}
+        {/* TOP HEADER & EVENT SELECTOR DOCK */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-rosewood-300/30">
-          <div>
+          <div className="space-y-2">
             <div className="flex items-center gap-3">
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-rose-300">
-                Dashboard Admin Undangan
+                Dashboard Manajemen Multi-Acara
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
                 isSupabaseConfigured() 
@@ -102,29 +146,66 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                 {isSupabaseConfigured() ? 'Supabase Connected' : 'Local Storage Mode'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Kelola data acara, lagu YouTube/MP3, rekening bank, daftar tamu, dan scanner QR.
-            </p>
+
+            {/* EVENT SELECTOR DROPDOWN */}
+            <div className="flex items-center gap-3 pt-1">
+              <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
+                <Layers className="w-4 h-4 text-rose-400" />
+                <span>Pilih Acara:</span>
+              </span>
+              <select
+                value={selectedSlug}
+                onChange={(e) => {
+                  if (e.target.value === 'new') {
+                    setActiveTab('new_event');
+                  } else {
+                    setSelectedSlug(e.target.value);
+                    if (onSwitchEvent) onSwitchEvent(e.target.value);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-950 border border-rosewood-400/40 text-rose-200 text-xs font-bold focus:outline-none focus:border-rose-400"
+              >
+                {Object.keys(eventsMap).map((slug) => {
+                  const evt = eventsMap[slug];
+                  return (
+                    <option key={slug} value={slug}>
+                      💒 {evt.groom_name?.split(',')[0]} & {evt.bride_name?.split(',')[0]} ({slug})
+                    </option>
+                  );
+                })}
+                <option value="new">➕ Buat Acara Undangan Baru...</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={copyClientAdminLink}
+              className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 font-bold text-xs flex items-center gap-2 transition"
+              title="Salin Link Kelola Khusus Klien"
+            >
+              {copiedAdminLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+              <span>{copiedAdminLink ? 'Link Klien Tersalin!' : 'Salin Link Admin Klien'}</span>
+            </button>
+
             <button
               onClick={onOpenScanner}
               className="py-2.5 px-4 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"
             >
               <QrCode className="w-4 h-4" />
-              <span>Buka QR Scanner</span>
+              <span>QR Scanner</span>
             </button>
+
             <button
               onClick={onClose}
               className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition"
             >
-              Tutup Dashboard
+              Tutup
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* TAB NAVIGATION */}
         <div className="flex border-b border-slate-800">
           <button
             onClick={() => setActiveTab('guests')}
@@ -149,9 +230,21 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
             <Settings className="w-4 h-4" />
             <span>Pengaturan Acara & Musik</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('new_event')}
+            className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
+              activeTab === 'new_event'
+                ? 'border-rosewood-500 text-rose-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>➕ Buat Acara Baru</span>
+          </button>
         </div>
 
-        {/* TAB 1: GUEST MANAGEMENT */}
+        {/* TAB 1: GUEST MANAGEMENT FOR SELECTED EVENT */}
         {activeTab === 'guests' && (
           <div className="space-y-6">
             {/* Stats Overview */}
@@ -182,7 +275,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   required
                   value={newGuestName}
                   onChange={(e) => setNewGuestName(e.target.value)}
-                  placeholder="Masukkan Nama Tamu Undangan Baru (misal: M Yaser / Budi & Istri)..."
+                  placeholder={`Masukkan Nama Tamu untuk Acara (${selectedSlug})...`}
                   className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-400 text-xs"
                 />
                 <button
@@ -224,7 +317,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   {filteredGuests.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                        Belum ada tamu ditemukan. Tambahkan tamu di atas!
+                        Belum ada tamu di acara ini. Tambahkan tamu di atas!
                       </td>
                     </tr>
                   ) : (
@@ -298,11 +391,11 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
           </div>
         )}
 
-        {/* TAB 2: SETTINGS FORM (INCLUDES YOUTUBE MUSIC URL & REKENING BANK) */}
+        {/* TAB 2: SETTINGS FORM */}
         {activeTab === 'settings' && settings && (
           <form onSubmit={handleSaveSettings} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
             <h2 className="text-xl font-serif font-bold text-rose-300 border-b border-slate-800 pb-3">
-              Informasi Mempelai, Musik YouTube & Rekening Bank
+              Pengaturan Acara ({selectedSlug})
             </h2>
 
             {/* Input YouTube Music */}
@@ -313,14 +406,11 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
               </div>
               <input
                 type="text"
-                value={settings.music_url}
+                value={settings.music_url || ''}
                 onChange={(e) => setSettingsState({ ...settings, music_url: e.target.value })}
                 placeholder="Paste link YouTube (misal: https://www.youtube.com/watch?v=...) atau link MP3..."
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
               />
-              <p className="text-[11px] text-slate-400 italic">
-                *Masukkan URL video YouTube atau file MP3 yang ingin diputar sebagai lagu latar undangan.
-              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -331,7 +421,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Pria & Gelar</label>
                   <input
                     type="text"
-                    value={settings.groom_name}
+                    value={settings.groom_name || ''}
                     onChange={(e) => setSettingsState({ ...settings, groom_name: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
@@ -340,18 +430,8 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   <label className="text-xs text-slate-300 block mb-1">Nama Orang Tua Mempelai Pria</label>
                   <input
                     type="text"
-                    value={settings.groom_parents}
+                    value={settings.groom_parents || ''}
                     onChange={(e) => setSettingsState({ ...settings, groom_parents: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Pria</label>
-                  <input
-                    type="text"
-                    value={settings.groom_instagram || ''}
-                    onChange={(e) => setSettingsState({ ...settings, groom_instagram: e.target.value })}
-                    placeholder="@fauzi"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
@@ -364,7 +444,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Wanita & Gelar</label>
                   <input
                     type="text"
-                    value={settings.bride_name}
+                    value={settings.bride_name || ''}
                     onChange={(e) => setSettingsState({ ...settings, bride_name: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
@@ -373,18 +453,8 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                   <label className="text-xs text-slate-300 block mb-1">Nama Orang Tua Mempelai Wanita</label>
                   <input
                     type="text"
-                    value={settings.bride_parents}
+                    value={settings.bride_parents || ''}
                     onChange={(e) => setSettingsState({ ...settings, bride_parents: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Wanita</label>
-                  <input
-                    type="text"
-                    value={settings.bride_instagram || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bride_instagram: e.target.value })}
-                    placeholder="@nadiah"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
@@ -462,6 +532,78 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                 <span>Simpan Seluruh Perubahan</span>
               </button>
             </div>
+          </form>
+        )}
+
+        {/* TAB 3: CREATE NEW EVENT FORM */}
+        {activeTab === 'new_event' && (
+          <form onSubmit={handleCreateNewEvent} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
+            <div className="space-y-1 border-b border-slate-800 pb-3">
+              <h2 className="text-xl font-serif font-bold text-rose-300 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-rose-400" />
+                <span>Buat Acara Pernikahan Baru</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                Tambahkan klien pernikahan baru. Setiap acara memiliki link undangan dan manajemen tamu terpisah.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Pria</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Budi Santoso, S.Kom"
+                  value={newEventData.groom_name}
+                  onChange={(e) => setNewEventData({ ...newEventData, groom_name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Wanita</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Rani Wijaya, S.E"
+                  value={newEventData.bride_name}
+                  onChange={(e) => setNewEventData({ ...newEventData, bride_name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Slug URL Acara (Opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: budi-rani"
+                  value={newEventData.event_slug}
+                  onChange={(e) => setNewEventData({ ...newEventData, event_slug: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Tanggal Pernikahan</label>
+                <input
+                  type="date"
+                  value={newEventData.akad_date}
+                  onChange={(e) => setNewEventData({ ...newEventData, akad_date: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="py-3.5 px-8 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Buat Acara Pernikahan Baru</span>
+            </button>
           </form>
         )}
       </div>

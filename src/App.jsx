@@ -11,6 +11,7 @@ import { getWeddingSettings } from './services/store';
 import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
 export default function App() {
+  const [eventSlug, setEventSlug] = useState('fauzi-nadiah');
   const [settings, setSettings] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
@@ -22,11 +23,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
-    getWeddingSettings().then(setSettings);
-
+    // 1. Extract event_slug & guest name from URL query params
     const params = new URLSearchParams(window.location.search);
+    const evtParam = params.get('event') || params.get('acara') || 'fauzi-nadiah';
     const toParam = params.get('to') || params.get('nama') || params.get('guest');
     const slugParam = params.get('slug');
+
+    setEventSlug(evtParam);
+
+    // Fetch settings for this specific event
+    getWeddingSettings(evtParam).then(setSettings);
 
     if (toParam) {
       setGuestName(toParam);
@@ -38,14 +44,19 @@ export default function App() {
       setGuestName('M Yaser');
     }
 
-    // Admin panel strictly accessible via ?admin=true parameter
+    // Admin panel accessible via ?admin=true parameter
     if (params.get('admin') === 'true') {
       setShowAdmin(true);
     }
   }, []);
 
+  const reloadEventSettings = (slug) => {
+    const targetSlug = slug || eventSlug;
+    setEventSlug(targetSlug);
+    getWeddingSettings(targetSlug).then(setSettings);
+  };
+
   const handleOpenInvitation = () => {
-    // Show motion graphics intro for 4s before entering main full pages
     setShowMotionIntro(true);
     setStartMusic(true);
   };
@@ -87,7 +98,7 @@ export default function App() {
       />
       <div className="fixed inset-0 bg-cream-100/70 pointer-events-none" />
 
-      {/* MOBILE FRAME VIEWPORT CONTAINER (FULL PAGE SNAP) */}
+      {/* MOBILE FRAME VIEWPORT CONTAINER */}
       <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
         {!isOpen ? (
           /* COVER SECTION */
@@ -145,9 +156,13 @@ export default function App() {
       {/* ADMIN PANEL MODAL (ACCESSIBLE VIA ?admin=true URL PARAMETER) */}
       {showAdmin && (
         <AdminPanel
+          currentEventSlug={eventSlug}
           onClose={() => {
             setShowAdmin(false);
-            getWeddingSettings().then(setSettings);
+            reloadEventSettings(eventSlug);
+          }}
+          onSwitchEvent={(newSlug) => {
+            reloadEventSettings(newSlug);
           }}
           onOpenScanner={() => {
             setShowAdmin(false);
