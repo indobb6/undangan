@@ -6,19 +6,19 @@ import AdminPanel from './components/AdminPanel';
 import QRScannerModal from './components/QRScannerModal';
 import MusicPlayer from './components/MusicPlayer';
 import DigitalEnvelope from './components/DigitalEnvelope';
-import FloralPetals from './components/FloralPetals';
+import MotionIntro from './components/MotionIntro';
 import { getWeddingSettings } from './services/store';
-import { Heart, Calendar, Gift, Mail, Lock } from 'lucide-react';
+import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
 export default function App() {
   const [settings, setSettings] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [showMotionIntro, setShowMotionIntro] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [startMusic, setStartMusic] = useState(false);
-  const [showPetals, setShowPetals] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
@@ -38,18 +38,21 @@ export default function App() {
       setGuestName('M Yaser');
     }
 
-    // Admin panel accessible via ?admin=true
+    // Admin panel strictly accessible via ?admin=true parameter
     if (params.get('admin') === 'true') {
       setShowAdmin(true);
     }
   }, []);
 
   const handleOpenInvitation = () => {
-    setIsOpen(true);
+    // Show motion graphics intro for 4s before entering main full pages
+    setShowMotionIntro(true);
     setStartMusic(true);
-    setShowPetals(true);
-    // Hide petals after 10 seconds to keep UI clean
-    setTimeout(() => setShowPetals(false), 10000);
+  };
+
+  const handleMotionComplete = () => {
+    setShowMotionIntro(false);
+    setIsOpen(true);
   };
 
   const scrollToSection = (id) => {
@@ -68,13 +71,12 @@ export default function App() {
     );
   }
 
-  const groomFirst = settings.groom_name?.split(',')[0] || 'Fauzi';
-  const brideFirst = settings.bride_name?.split(',')[0] || 'Nadiah';
-
   return (
     <div className="min-h-screen bg-cream-100 text-espresso-800 flex items-center justify-center relative overflow-x-hidden">
-      {/* FALLING PETALS ANIMATION WHEN INVITATION OPENS */}
-      {showPetals && <FloralPetals count={30} />}
+      {/* MOTION GRAPHICS INTRO OVERLAY */}
+      {showMotionIntro && (
+        <MotionIntro settings={settings} onComplete={handleMotionComplete} />
+      )}
 
       {/* DESKTOP BACKGROUND BACKDROP */}
       <div 
@@ -85,8 +87,8 @@ export default function App() {
       />
       <div className="fixed inset-0 bg-cream-100/70 pointer-events-none" />
 
-      {/* MOBILE FRAME VIEWPORT CONTAINER (BRIGHT ROMANTIC THEME) */}
-      <div className="w-full max-w-[480px] min-h-screen sm:min-h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
+      {/* MOBILE FRAME VIEWPORT CONTAINER (FULL PAGE SNAP) */}
+      <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
         {!isOpen ? (
           /* COVER SECTION */
           <CoverSection
@@ -95,19 +97,8 @@ export default function App() {
             onOpenInvitation={handleOpenInvitation}
           />
         ) : (
-          /* INVITATION CONTENT BODY */
-          <div className="relative pb-24 overflow-y-auto max-h-screen scroll-smooth">
-            {/* Header Banner */}
-            <div id="home" className="py-10 text-center space-y-2 bg-gradient-to-b from-rosewood-50 via-cream-100 to-cream-50 border-b border-rosewood-200 px-4">
-              <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">The Wedding of</p>
-              <h1 className="font-script text-4xl sm:text-5xl text-romantic-gradient py-1">
-                {groomFirst} & {brideFirst}
-              </h1>
-              <p className="text-xs text-espresso-700 font-serif">
-                {settings.akad_date ? new Date(settings.akad_date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Sabtu, 29 Agustus 2026'}
-              </p>
-            </div>
-
+          /* INVITATION CONTENT BODY (FULL PAGE SNAP CONTAINER) */
+          <div className="relative h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth">
             <InvitationContent settings={settings} />
 
             <DigitalEnvelope settings={settings} />
@@ -115,18 +106,6 @@ export default function App() {
             <RsvpSection defaultGuestName={guestName} guestSlug={guestSlug} />
 
             <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
-
-            {/* Subtle Footer Admin Trigger */}
-            <div className="py-8 text-center">
-              <button
-                onClick={() => setShowAdmin(true)}
-                className="text-[10px] text-rosewood-300 hover:text-rosewood-500 inline-flex items-center gap-1 transition"
-                title="Buka Admin Panel"
-              >
-                <Lock className="w-3 h-3" />
-                <span>Admin Login</span>
-              </button>
-            </div>
 
             {/* BOTTOM NAVIGATION DOCK */}
             <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/90 border border-rosewood-200 rounded-full px-5 py-2.5 flex items-center gap-6 shadow-xl backdrop-blur-md">
@@ -163,7 +142,7 @@ export default function App() {
         )}
       </div>
 
-      {/* ADMIN PANEL MODAL */}
+      {/* ADMIN PANEL MODAL (ACCESSIBLE VIA ?admin=true URL PARAMETER) */}
       {showAdmin && (
         <AdminPanel
           onClose={() => {
