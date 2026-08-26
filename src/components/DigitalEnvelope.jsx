@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Gift, CreditCard, Copy, Check } from 'lucide-react';
+import { CreditCard, Copy, Check } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 export default function DigitalEnvelope({ settings }) {
   const [copiedAccount, setCopiedAccount] = useState(null);
+
+  useScrollReveal();
 
   const copyToClipboard = (accNum, type) => {
     navigator.clipboard.writeText(accNum);
@@ -11,9 +14,9 @@ export default function DigitalEnvelope({ settings }) {
   };
 
   return (
-    <section id="gift" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 snap-start relative">
-      <div className="w-full space-y-6 text-espresso-800 animate-fade-in-up my-auto">
-        <div className="text-center space-y-1">
+    <section id="gift" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+      <div className="w-full space-y-6 text-espresso-800 my-auto">
+        <div className="text-center space-y-1 slide-up">
           <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Tanda Kasih</p>
           <h2 className="font-serif text-2xl font-bold text-rosewood-900">
             Amplop Digital & Hadiah
@@ -24,9 +27,9 @@ export default function DigitalEnvelope({ settings }) {
         </div>
 
         <div className="space-y-4">
-          {/* Bank 1 */}
+          {/* Bank 1 - Slide Left */}
           {settings.bank_account && (
-            <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden">
+            <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden slide-left">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-rosewood-700" />
@@ -65,9 +68,9 @@ export default function DigitalEnvelope({ settings }) {
             </div>
           )}
 
-          {/* Bank 2 */}
+          {/* Bank 2 - Slide Right */}
           {settings.bank_account_2 && (
-            <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden">
+            <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden slide-right">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-rosewood-700" />

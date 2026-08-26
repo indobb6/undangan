@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw } from 'lucide-react';
 import { submitRSVP, getAllGuests } from '../services/store';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 export default function RsvpSection({ defaultGuestName, guestSlug }) {
   const [guestName, setGuestName] = useState(defaultGuestName || '');
@@ -13,6 +14,8 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
   const [submittedData, setSubmittedData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allWishes, setAllWishes] = useState([]);
+
+  useScrollReveal();
 
   useEffect(() => {
     if (defaultGuestName) {
@@ -95,16 +98,16 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
   };
 
   return (
-    <section id="rsvp" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 snap-start relative">
-      <div className="w-full space-y-6 text-espresso-800 animate-fade-in-up my-auto">
-        <div className="text-center space-y-0.5">
+    <section id="rsvp" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+      <div className="w-full space-y-6 text-espresso-800 my-auto">
+        <div className="text-center space-y-0.5 slide-up">
           <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Konfirmasi Kehadiran</p>
           <h2 className="font-serif text-2xl font-bold text-rosewood-900">
             RSVP & Voucher Makan
           </h2>
         </div>
 
-        <div className="glass-card-romantic p-5 rounded-3xl border border-rosewood-200 shadow-xl">
+        <div className="glass-card-romantic p-5 rounded-3xl border border-rosewood-200 shadow-xl slide-up">
           {!submittedData ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Input Nama */}
@@ -228,7 +231,7 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
             </form>
           ) : (
             /* RESULT AFTER SUBMISSION */
-            <div className="space-y-4 text-center animate-fade-in-up">
+            <div className="space-y-4 text-center">
               <div className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>RSVP Berhasil</span>

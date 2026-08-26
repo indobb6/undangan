@@ -25,7 +25,7 @@
 
 /* Glassmorphic Bright Romantic Cards */
 .glass-card-romantic {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(212, 162, 55, 0.25);
@@ -39,15 +39,9 @@
   box-shadow: 0 12px 35px -8px rgba(184, 129, 38, 0.12);
 }
 
-/* Gradient Text for Bright Romantic Theme */
+/* Gradient Text */
 .text-romantic-gradient {
   background: linear-gradient(135deg, #8c3842 0%, #b85b65 40%, #b88126 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gold-gradient {
-  background: linear-gradient(135deg, #b88126 0%, #d4a237 50%, #8c3842 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -62,20 +56,32 @@
   box-shadow: 0 2px 5px rgba(140, 56, 66, 0.15);
 }
 
-/* Custom Fade In & Scroll Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* --- SILKY SMOOTH SLIDE ANIMATIONS ON SCROLL --- */
+
+.slide-up {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.slide-left {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.slide-right {
+  opacity: 0;
+  transform: translateX(50px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.slide-active {
+  opacity: 1 !important;
+  transform: translate(0, 0) !important;
 }
 
 /* Scrollbar Hide */

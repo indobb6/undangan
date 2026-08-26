@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, ExternalLink, Instagram, Heart } from 'lucide-react';
+import { Calendar, Clock, MapPin, ExternalLink, Instagram } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 export default function InvitationContent({ settings }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useScrollReveal();
 
   useEffect(() => {
     const targetDate = new Date(`${settings.akad_date || '2026-08-29'}T08:00:00`).getTime();
@@ -46,11 +49,11 @@ export default function InvitationContent({ settings }) {
 
   return (
     <>
-      {/* PAGE 1: BERANDA / COUPLE PROFILE (FULL PAGE SNAP) */}
-      <section id="home" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 snap-start relative">
-        <div className="w-full space-y-6 text-center animate-fade-in-up my-auto">
-          {/* Header Title */}
-          <div className="space-y-1">
+      {/* PAGE 1: BERANDA / COUPLE PROFILE (FULL PAGE) */}
+      <section id="home" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+        <div className="w-full space-y-6 text-center my-auto">
+          {/* Header Title - Slide Up */}
+          <div className="space-y-1 slide-up">
             <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">The Wedding of</p>
             <h1 className="font-script text-4xl sm:text-5xl text-romantic-gradient py-1 font-bold">
               {groomFirst} & {brideFirst}
@@ -60,8 +63,8 @@ export default function InvitationContent({ settings }) {
             </p>
           </div>
 
-          {/* Surah Quote */}
-          <div className="glass-card-romantic p-5 rounded-3xl text-center space-y-2 border border-rosewood-200 shadow-md">
+          {/* Surah Quote - Slide Up */}
+          <div className="glass-card-romantic p-5 rounded-3xl text-center space-y-2 border border-rosewood-200 shadow-md slide-up">
             <p className="font-serif text-sm text-rosewood-700 font-bold">
               بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
             </p>
@@ -73,10 +76,10 @@ export default function InvitationContent({ settings }) {
             </p>
           </div>
 
-          {/* Groom & Bride Cards */}
+          {/* Groom & Bride Cards - Slide Left & Slide Right */}
           <div className="grid grid-cols-2 gap-3 items-center pt-2">
-            {/* Groom */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center">
+            {/* Groom - Slide Left */}
+            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-left">
               <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
                 <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
                   {settings.groom_name?.charAt(0) || 'F'}
@@ -90,8 +93,8 @@ export default function InvitationContent({ settings }) {
               </p>
             </div>
 
-            {/* Bride */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center">
+            {/* Bride - Slide Right */}
+            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-right">
               <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
                 <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
                   {settings.bride_name?.charAt(0) || 'N'}
@@ -108,18 +111,18 @@ export default function InvitationContent({ settings }) {
         </div>
       </section>
 
-      {/* PAGE 2: ACARA & SCHEDULE (FULL PAGE SNAP) */}
-      <section id="couple" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 snap-start relative">
-        <div className="w-full space-y-6 animate-fade-in-up my-auto">
-          <div className="text-center space-y-1">
+      {/* PAGE 2: ACARA & SCHEDULE (FULL PAGE) */}
+      <section id="couple" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+        <div className="w-full space-y-6 my-auto">
+          <div className="text-center space-y-1 slide-up">
             <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Jadwal & Lokasi</p>
             <h2 className="font-serif text-2xl font-bold text-rosewood-900">
               Rangkaian Acara
             </h2>
           </div>
 
-          {/* Countdown Timer */}
-          <div className="glass-card-romantic p-4 rounded-2xl text-center space-y-2 border border-rosewood-200 shadow-sm">
+          {/* Countdown Timer - Slide Up */}
+          <div className="glass-card-romantic p-4 rounded-2xl text-center space-y-2 border border-rosewood-200 shadow-sm slide-up">
             <h3 className="font-serif text-xs text-rosewood-900 font-bold uppercase tracking-wider">
               Hitung Mundur Hari Bahagia
             </h3>
@@ -145,8 +148,8 @@ export default function InvitationContent({ settings }) {
 
           {/* Cards for Akad & Resepsi */}
           <div className="space-y-3">
-            {/* Akad Nikah */}
-            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md">
+            {/* Akad Nikah - Slide Left */}
+            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md slide-left">
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rosewood-100 text-rosewood-700 text-[10px] font-bold uppercase">
                 Akad Nikah
               </div>
@@ -176,8 +179,8 @@ export default function InvitationContent({ settings }) {
               </a>
             </div>
 
-            {/* Resepsi Nikah */}
-            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md">
+            {/* Resepsi Nikah - Slide Right */}
+            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md slide-right">
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-champagne-200 text-champagne-600 text-[10px] font-bold uppercase">
                 Resepsi Nikah
               </div>
