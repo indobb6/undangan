@@ -7,28 +7,34 @@ export default {
   theme: {
     extend: {
       colors: {
-        gold: {
-          50: '#fffdf0',
-          100: '#fefab8',
-          200: '#fef380',
-          300: '#fde547',
-          400: '#fbd01e',
-          500: '#d99f05',
-          600: '#b87b00',
-          700: '#935800',
-          800: '#774507',
-          900: '#64390c',
+        cream: {
+          50: '#fffdfa',
+          100: '#fdfbf7',
+          200: '#f7f2eb',
+          300: '#eee5d8',
         },
         rosewood: {
-          50: '#fcf4f5',
-          100: '#f9e6e8',
-          500: '#8c263e',
-          900: '#47101e',
+          50: '#fcf6f6',
+          100: '#f7eaea',
+          200: '#eed2d3',
+          300: '#dfacae',
+          500: '#b85b65',
+          700: '#8c3842',
+          900: '#4a191f',
         },
-        cream: {
-          50: '#fdfcf7',
-          100: '#f9f6e8',
-          200: '#f3eed2',
+        champagne: {
+          50: '#fffcf5',
+          100: '#fef7e6',
+          200: '#fcecc7',
+          300: '#fae0a2',
+          400: '#f5c65d',
+          500: '#d4a237',
+          600: '#b88126',
+        },
+        espresso: {
+          700: '#5c3a38',
+          800: '#3e2423',
+          900: '#261413',
         }
       },
       fontFamily: {
@@ -37,13 +43,20 @@ export default {
         script: ['Great Vibes', 'Alex Brush', 'cursive'],
       },
       animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 4s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 5s ease-in-out infinite',
+        'spin-slow': 'spin 12s linear infinite',
+        'petal-fall': 'petalFall 7s linear infinite',
       },
       keyframes: {
         float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-8px)' },
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '50%': { transform: 'translateY(-10px) rotate(2deg)' },
+        },
+        petalFall: {
+          '0%': { transform: 'translateY(-10%) rotate(0deg) translateX(0px)', opacity: '0.9' },
+          '50%': { transform: 'translateY(50vh) rotate(180deg) translateX(30px)', opacity: '0.8' },
+          '100%': { transform: 'translateY(105vh) rotate(360deg) translateX(-20px)', opacity: '0.2' }
         }
       }
     },

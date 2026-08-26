@@ -1,50 +1,92 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Music, VolumeX, Volume2 } from 'lucide-react';
+import { Volume2, VolumeX, Music } from 'lucide-react';
 
 export default function MusicPlayer({ musicUrl, autoPlayTrigger }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [youtubeId, setYoutubeId] = useState(null);
   const audioRef = useRef(null);
 
+  // Extract YouTube ID if valid
+  const getYouTubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
   useEffect(() => {
-    if (autoPlayTrigger && audioRef.current) {
-      audioRef.current.play().then(() => {
+    const ytId = getYouTubeId(musicUrl);
+    setYoutubeId(ytId);
+  }, [musicUrl]);
+
+  useEffect(() => {
+    if (autoPlayTrigger) {
+      if (!youtubeId && audioRef.current) {
+        audioRef.current
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch((err) => console.warn('Audio play error:', err));
+      } else if (youtubeId) {
         setIsPlaying(true);
-      }).catch((err) => {
-        console.warn('Autoplay prevented by browser policy', err);
-      });
+      }
     }
-  }, [autoPlayTrigger]);
+  }, [autoPlayTrigger, youtubeId]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+    if (youtubeId) {
+      setIsPlaying(!isPlaying);
+      const iframe = document.getElementById('youtube-audio-iframe');
+      if (iframe) {
+        const func = isPlaying ? 'pauseVideo' : 'playVideo';
+        iframe.contentWindow.postMessage(`{"event":"command","func":"${func}","args":""}`, '*');
+      }
+    } else if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(console.error);
+      }
     }
   };
 
   return (
     <div className="fixed bottom-6 left-6 z-40">
-      <audio
-        ref={audioRef}
-        src={musicUrl || 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'}
-        loop
-      />
+      {youtubeId ? (
+        <iframe
+          id="youtube-audio-iframe"
+          className="hidden"
+          width="0"
+          height="0"
+          src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=${
+            isPlaying ? 1 : 0
+          }&loop=1&playlist=${youtubeId}`}
+          allow="autoplay"
+        />
+      ) : (
+        <audio
+          ref={audioRef}
+          src={musicUrl || 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'}
+          loop
+        />
+      )}
+
       <button
         onClick={togglePlay}
-        className={`w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition border transform hover:scale-110 ${
+        className={`w-11 h-11 rounded-full flex items-center justify-center shadow-xl transition-all border transform hover:scale-110 ${
           isPlaying
-            ? 'bg-gold-500 text-slate-950 border-gold-400 animate-spin-slow'
-            : 'bg-slate-900/90 text-gold-400 border-gold-500/40'
+            ? 'bg-rosewood-500 text-white border-rosewood-400 animate-spin-slow shadow-rosewood-500/30'
+            : 'bg-white/90 text-rosewood-700 border-rose-200 backdrop-blur-md'
         }`}
         title={isPlaying ? 'Matikan Musik' : 'Putar Musik'}
       >
         {isPlaying ? (
-          <Volume2 className="w-5 h-5 animate-pulse" />
+          <Volume2 className="w-5 h-5 animate-pulse text-white" />
         ) : (
-          <VolumeX className="w-5 h-5" />
+          <VolumeX className="w-5 h-5 text-rosewood-700" />
         )}
       </button>
     </div>

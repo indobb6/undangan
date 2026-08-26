@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
-  Database, RefreshCw, ExternalLink, Ticket, Search, Check, AlertCircle 
+  Database, ExternalLink, Ticket, Search, Check, Music, CreditCard 
 } from 'lucide-react';
 import { 
   getWeddingSettings, saveWeddingSettings, 
-  getAllGuests, addOrUpdateGuest, deleteGuest, createSlug 
+  getAllGuests, addOrUpdateGuest, deleteGuest 
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function AdminPanel({ onClose, onOpenScanner }) {
-  const [activeTab, setActiveTab] = useState('guests'); // 'settings' | 'guests'
+  const [activeTab, setActiveTab] = useState('guests');
   const [settings, setSettingsState] = useState(null);
   const [guests, setGuests] = useState([]);
   const [newGuestName, setNewGuestName] = useState('');
@@ -37,7 +37,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
     setIsSaving(true);
     await saveWeddingSettings(settings);
     setIsSaving(false);
-    alert('Pengaturan acara pernikahan berhasil disimpan!');
+    alert('Pengaturan acara & musik berhasil disimpan!');
   };
 
   const handleAddGuest = async (e) => {
@@ -76,7 +76,6 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Statistics
   const totalGuests = guests.length;
   const attendingCount = guests.filter((g) => g.status === 'hadir').length;
   const totalQuota = guests
@@ -85,14 +84,14 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
   const totalRedeemed = guests.filter((g) => g.food_redeemed).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 text-slate-100 selection:bg-gold-500 selection:text-slate-900">
+    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 text-slate-100 selection:bg-rosewood-500 selection:text-white">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Top Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-card p-6 rounded-3xl border border-gold-500/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-rosewood-300/30">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gold-300">
-                Panel Admin Undangan
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-rose-300">
+                Dashboard Admin Undangan
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
                 isSupabaseConfigured() 
@@ -104,14 +103,14 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Kelola informasi mempelai, daftar tamu, link undangan, dan scanner penukaran makan.
+              Kelola data acara, lagu YouTube/MP3, rekening bank, daftar tamu, dan scanner QR.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenScanner}
-              className="py-2.5 px-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-gold-500/20 transition"
+              className="py-2.5 px-4 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"
             >
               <QrCode className="w-4 h-4" />
               <span>Buka QR Scanner</span>
@@ -120,7 +119,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
               onClick={onClose}
               className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition"
             >
-              Kembali ke Undangan
+              Tutup Dashboard
             </button>
           </div>
         </div>
@@ -131,7 +130,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
             onClick={() => setActiveTab('guests')}
             className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
               activeTab === 'guests'
-                ? 'border-gold-500 text-gold-300'
+                ? 'border-rosewood-500 text-rose-300'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -143,12 +142,12 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
             onClick={() => setActiveTab('settings')}
             className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
               activeTab === 'settings'
-                ? 'border-gold-500 text-gold-300'
+                ? 'border-rosewood-500 text-rose-300'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>Pengaturan Acara</span>
+            <span>Pengaturan Acara & Musik</span>
           </button>
         </div>
 
@@ -157,38 +156,38 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
           <div className="space-y-6">
             {/* Stats Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="glass-card p-4 rounded-2xl border border-gold-500/20">
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div className="text-xs text-slate-400">Total Tamu Diundang</div>
                 <div className="text-2xl font-bold font-serif text-slate-100">{totalGuests}</div>
               </div>
-              <div className="glass-card p-4 rounded-2xl border border-gold-500/20">
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div className="text-xs text-slate-400">Konfirmasi Hadir</div>
                 <div className="text-2xl font-bold font-serif text-emerald-400">{attendingCount}</div>
               </div>
-              <div className="glass-card p-4 rounded-2xl border border-gold-500/20">
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div className="text-xs text-slate-400">Total Kuota Porsi</div>
-                <div className="text-2xl font-bold font-serif text-gold-300">{totalQuota} Porsi</div>
+                <div className="text-2xl font-bold font-serif text-amber-300">{totalQuota} Porsi</div>
               </div>
-              <div className="glass-card p-4 rounded-2xl border border-gold-500/20">
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div className="text-xs text-slate-400">Telah Ditukarkan</div>
-                <div className="text-2xl font-bold font-serif text-amber-400">{totalRedeemed} Tamu</div>
+                <div className="text-2xl font-bold font-serif text-rose-400">{totalRedeemed} Tamu</div>
               </div>
             </div>
 
             {/* Add Guest Form */}
-            <div className="glass-card p-6 rounded-2xl border border-gold-500/30">
+            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
               <form onSubmit={handleAddGuest} className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   required
                   value={newGuestName}
                   onChange={(e) => setNewGuestName(e.target.value)}
-                  placeholder="Masukkan Nama Tamu Undangan Baru (misal: Budi Santoso / Budi & Istri)..."
-                  className="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-gold-500/30 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-gold-400 text-sm"
+                  placeholder="Masukkan Nama Tamu Undangan Baru (misal: M Yaser / Budi & Istri)..."
+                  className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-400 text-xs"
                 />
                 <button
                   type="submit"
-                  className="py-3 px-6 rounded-xl bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shrink-0 transition"
+                  className="py-3 px-6 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 transition shadow-md"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Tambah Tamu</span>
@@ -204,14 +203,14 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari nama tamu..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-gold-500"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-rose-400"
               />
             </div>
 
             {/* Guests Table */}
-            <div className="glass-card rounded-2xl border border-slate-800 overflow-x-auto">
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-900/90 text-gold-300 uppercase tracking-wider border-b border-slate-800">
+                <thead className="bg-slate-950 text-rose-300 uppercase tracking-wider border-b border-slate-800">
                   <tr>
                     <th className="p-4">Nama Tamu</th>
                     <th className="p-4">Status RSVP</th>
@@ -252,7 +251,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                         <td className="p-4 capitalize">
                           {guest.marital_status === 'married' ? 'Menikah' : 'Single'}
                         </td>
-                        <td className="p-4 font-bold text-gold-300">
+                        <td className="p-4 font-bold text-amber-300">
                           {guest.food_quota || 1} Porsi
                         </td>
                         <td className="p-4">
@@ -267,7 +266,7 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                         <td className="p-4 text-right space-x-2">
                           <button
                             onClick={() => copyInvitationLink(guest)}
-                            className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-gold-300 border border-gold-500/30 font-semibold inline-flex items-center gap-1 transition"
+                            className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 font-semibold inline-flex items-center gap-1 transition"
                           >
                             {copiedSlug === guest.slug ? (
                               <>
@@ -299,24 +298,42 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
           </div>
         )}
 
-        {/* TAB 2: SETTINGS FORM */}
+        {/* TAB 2: SETTINGS FORM (INCLUDES YOUTUBE MUSIC URL & REKENING BANK) */}
         {activeTab === 'settings' && settings && (
-          <form onSubmit={handleSaveSettings} className="glass-card p-6 sm:p-8 rounded-3xl border border-gold-500/30 space-y-6">
-            <h2 className="text-xl font-serif font-bold text-gold-300 border-b border-slate-800 pb-3">
-              Informasi Mempelai & Acara
+          <form onSubmit={handleSaveSettings} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
+            <h2 className="text-xl font-serif font-bold text-rose-300 border-b border-slate-800 pb-3">
+              Informasi Mempelai, Musik YouTube & Rekening Bank
             </h2>
+
+            {/* Input YouTube Music */}
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
+                <Music className="w-4 h-4 text-rosewood-500" />
+                <span>Link Musik YouTube / MP3</span>
+              </div>
+              <input
+                type="text"
+                value={settings.music_url}
+                onChange={(e) => setSettingsState({ ...settings, music_url: e.target.value })}
+                placeholder="Paste link YouTube (misal: https://www.youtube.com/watch?v=...) atau link MP3..."
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+              />
+              <p className="text-[11px] text-slate-400 italic">
+                *Masukkan URL video YouTube atau file MP3 yang ingin diputar sebagai lagu latar undangan.
+              </p>
+            </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Mempelai Laki-laki */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gold-400">Data Mempelai Pria</h3>
+                <h3 className="text-sm font-semibold text-rose-400">Data Mempelai Pria</h3>
                 <div>
                   <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Pria & Gelar</label>
                   <input
                     type="text"
                     value={settings.groom_name}
                     onChange={(e) => setSettingsState({ ...settings, groom_name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
                 <div>
@@ -325,21 +342,31 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                     type="text"
                     value={settings.groom_parents}
                     onChange={(e) => setSettingsState({ ...settings, groom_parents: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Pria</label>
+                  <input
+                    type="text"
+                    value={settings.groom_instagram || ''}
+                    onChange={(e) => setSettingsState({ ...settings, groom_instagram: e.target.value })}
+                    placeholder="@fauzi"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
               </div>
 
               {/* Mempelai Wanita */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gold-400">Data Mempelai Wanita</h3>
+                <h3 className="text-sm font-semibold text-rose-400">Data Mempelai Wanita</h3>
                 <div>
                   <label className="text-xs text-slate-300 block mb-1">Nama Mempelai Wanita & Gelar</label>
                   <input
                     type="text"
                     value={settings.bride_name}
                     onChange={(e) => setSettingsState({ ...settings, bride_name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
                 <div>
@@ -348,91 +375,91 @@ export default function AdminPanel({ onClose, onOpenScanner }) {
                     type="text"
                     value={settings.bride_parents}
                     onChange={(e) => setSettingsState({ ...settings, bride_parents: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Wanita</label>
+                  <input
+                    type="text"
+                    value={settings.bride_instagram || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bride_instagram: e.target.value })}
+                    placeholder="@nadiah"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Jadwal Akad & Resepsi */}
-            <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
-              {/* Akad */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gold-400">Jadwal & Lokasi Akad</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Tanggal Akad</label>
-                    <input
-                      type="date"
-                      value={settings.akad_date}
-                      onChange={(e) => setSettingsState({ ...settings, akad_date: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Waktu Akad</label>
-                    <input
-                      type="text"
-                      value={settings.akad_time}
-                      onChange={(e) => setSettingsState({ ...settings, akad_time: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Alamat / Templat Akad</label>
-                  <textarea
-                    rows={2}
-                    value={settings.akad_location}
-                    onChange={(e) => setSettingsState({ ...settings, akad_location: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+            {/* Rekening Amplop Digital */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                <span>Amplop Digital / Transfer Bank</span>
+              </h3>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-slate-300">Bank 1 (BCA)</span>
+                  <input
+                    type="text"
+                    placeholder="Nama Bank (misal: Bank BCA)"
+                    value={settings.bank_name || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nomor Rekening"
+                    value={settings.bank_account || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_account: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nama Pemilik Rekening"
+                    value={settings.bank_owner || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_owner: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
                   />
                 </div>
-              </div>
 
-              {/* Resepsi */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gold-400">Jadwal & Lokasi Resepsi</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Tanggal Resepsi</label>
-                    <input
-                      type="date"
-                      value={settings.resepsi_date}
-                      onChange={(e) => setSettingsState({ ...settings, resepsi_date: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Waktu Resepsi</label>
-                    <input
-                      type="text"
-                      value={settings.resepsi_time}
-                      onChange={(e) => setSettingsState({ ...settings, resepsi_time: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Alamat / Tempat Resepsi</label>
-                  <textarea
-                    rows={2}
-                    value={settings.resepsi_location}
-                    onChange={(e) => setSettingsState({ ...settings, resepsi_location: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-gold-500"
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-slate-300">Bank 2 (Mandiri / E-Wallet)</span>
+                  <input
+                    type="text"
+                    placeholder="Nama Bank (misal: Bank Mandiri)"
+                    value={settings.bank_name_2 || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_name_2: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nomor Rekening"
+                    value={settings.bank_account_2 || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_account_2: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nama Pemilik Rekening"
+                    value={settings.bank_owner_2 || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bank_owner_2: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
                   />
                 </div>
               </div>
             </div>
 
+            {/* Save Button */}
             <div className="pt-4">
               <button
                 type="submit"
                 disabled={isSaving}
-                className="py-3 px-8 rounded-xl bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition"
+                className="py-3.5 px-8 rounded-xl bg-rosewood-500 hover:bg-rosewood-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-md"
               >
                 <Save className="w-4 h-4" />
-                <span>Simpan Perubahan</span>
+                <span>Simpan Seluruh Perubahan</span>
               </button>
             </div>
           </form>

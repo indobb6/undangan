@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Ticket, QrCode, Download, Send, User, Users, HeartHandshake, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw } from 'lucide-react';
 import { submitRSVP, getAllGuests } from '../services/store';
 
 export default function RsvpSection({ defaultGuestName, guestSlug }) {
   const [guestName, setGuestName] = useState(defaultGuestName || '');
-  const [status, setStatus] = useState('hadir'); // 'hadir' | 'tidak_hadir'
-  const [maritalStatus, setMaritalStatus] = useState('single'); // 'single' | 'married'
+  const [status, setStatus] = useState('hadir');
+  const [maritalStatus, setMaritalStatus] = useState('single');
   const [wishes, setWishes] = useState('');
-  
+
   const [submittedData, setSubmittedData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allWishes, setAllWishes] = useState([]);
@@ -26,7 +26,6 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
     const wishesList = guests.filter((g) => g.wishes && g.wishes.trim().length > 0);
     setAllWishes(wishesList);
 
-    // Check if current guest already submitted
     if (guestSlug || defaultGuestName) {
       const existing = guests.find((g) => g.slug === guestSlug || g.name.toLowerCase() === defaultGuestName.toLowerCase());
       if (existing && existing.status !== 'pending') {
@@ -52,11 +51,10 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
       setSubmittedData(result);
       loadWishes();
 
-      // Trigger Celebration Confetti if attending
       if (status === 'hadir') {
         confetti({
-          particleCount: 80,
-          spread: 70,
+          particleCount: 90,
+          spread: 80,
           origin: { y: 0.6 }
         });
       }
@@ -97,23 +95,23 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
   };
 
   return (
-    <div id="rsvp" className="space-y-12 py-12 px-4 max-w-4xl mx-auto text-slate-100">
-      <div className="text-center space-y-2">
-        <p className="text-xs uppercase tracking-widest text-gold-400 font-semibold">Konfirmasi Kehadiran</p>
-        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-100">
-          RSVP & Voucher Konsumsi
+    <div id="rsvp" className="space-y-8 py-8 px-4 max-w-xl mx-auto text-espresso-800 animate-fade-in-up">
+      <div className="text-center space-y-1">
+        <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Konfirmasi Kehadiran</p>
+        <h2 className="font-serif text-2xl font-bold text-rosewood-900">
+          RSVP & Voucher Makan
         </h2>
-        <p className="text-sm text-slate-400 max-w-lg mx-auto">
-          Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu.
+        <p className="text-xs text-espresso-700 max-w-xs mx-auto">
+          Mohon isi konfirmasi kehadiran Anda di bawah ini untuk mendapatkan Kode QR Voucher Makan.
         </p>
       </div>
 
-      <div className="glass-card-gold p-6 sm:p-10 rounded-3xl border border-gold-500/40 shadow-2xl">
+      <div className="glass-card-romantic p-6 sm:p-8 rounded-3xl border border-rosewood-200 shadow-xl">
         {!submittedData ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Input Nama */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-200 block">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-rosewood-900 block">
                 Nama Lengkap Tamu
               </label>
               <input
@@ -122,23 +120,23 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Masukkan nama Anda..."
-                className="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-gold-500/30 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-gold-400 transition"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-rosewood-200 text-espresso-800 placeholder-slate-400 focus:outline-none focus:border-rosewood-500 text-xs font-medium"
               />
             </div>
 
             {/* Konfirmasi Kehadiran */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-200 block">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-rosewood-900 block">
                 Konfirmasi Kehadiran
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setStatus('hadir')}
-                  className={`p-4 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition ${
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                     status === 'hadir'
-                      ? 'bg-gold-500 text-slate-950 border-gold-400 font-bold shadow-lg shadow-gold-500/20'
-                      : 'bg-slate-900/60 border-slate-700 text-slate-300 hover:border-gold-500/40'
+                      ? 'bg-rosewood-700 text-white border-rosewood-700 shadow-md'
+                      : 'bg-white border-rose-200 text-espresso-700 hover:border-rosewood-300'
                   }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
@@ -148,68 +146,67 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
                 <button
                   type="button"
                   onClick={() => setStatus('tidak_hadir')}
-                  className={`p-4 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition ${
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                     status === 'tidak_hadir'
-                      ? 'bg-rose-600 text-white border-rose-500 font-bold shadow-lg shadow-rose-600/20'
-                      : 'bg-slate-900/60 border-slate-700 text-slate-300 hover:border-rose-500/40'
+                      ? 'bg-rose-800 text-white border-rose-800 shadow-md'
+                      : 'bg-white border-rose-200 text-espresso-700 hover:border-rose-300'
                   }`}
                 >
-                  <span>Maaf, Tidak Bisa Hadir</span>
+                  <span>Maaf, Tidak Hadir</span>
                 </button>
               </div>
             </div>
 
             {/* Status Pernikahan (Single vs Sudah Menikah) */}
             {status === 'hadir' && (
-              <div className="space-y-3 pt-2">
-                <label className="text-sm font-semibold text-slate-200 block">
-                  Status Pernikahan / Jumlah Konsumsi
+              <div className="space-y-2 pt-1">
+                <label className="text-xs font-bold text-rosewood-900 block">
+                  Status Pernikahan / Jumlah Porsi Makan
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setMaritalStatus('single')}
-                    className={`p-4 rounded-xl border text-left space-y-1 transition ${
+                    className={`p-3 rounded-xl border text-left space-y-0.5 transition ${
                       maritalStatus === 'single'
-                        ? 'bg-amber-500/20 border-gold-400 text-gold-200 shadow-md'
-                        : 'bg-slate-900/60 border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-rosewood-50 border-rosewood-500 text-rosewood-900 shadow-sm'
+                        : 'bg-white border-rose-200 text-espresso-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 font-bold text-sm">
-                      <User className="w-4 h-4 text-gold-400" />
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <User className="w-3.5 h-3.5 text-rosewood-700" />
                       <span>Single / Sendiri</span>
                     </div>
-                    <p className="text-xs text-slate-300">
-                      Mendapatkan <strong className="text-gold-300">1 Voucher Makan</strong>
+                    <p className="text-[10px] text-rosewood-700 font-medium">
+                      Mendapatkan <strong>1 Voucher Makan</strong>
                     </p>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setMaritalStatus('married')}
-                    className={`p-4 rounded-xl border text-left space-y-1 transition ${
+                    className={`p-3 rounded-xl border text-left space-y-0.5 transition ${
                       maritalStatus === 'married'
-                        ? 'bg-amber-500/20 border-gold-400 text-gold-200 shadow-md'
-                        : 'bg-slate-900/60 border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-rosewood-50 border-rosewood-500 text-rosewood-900 shadow-sm'
+                        : 'bg-white border-rose-200 text-espresso-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 font-bold text-sm">
-                      <Users className="w-4 h-4 text-gold-400" />
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <Users className="w-3.5 h-3.5 text-rosewood-700" />
                       <span>Sudah Menikah</span>
                     </div>
-                    <p className="text-xs text-slate-300">
-                      Mendapatkan <strong className="text-gold-300">2 Voucher Makan</strong>
+                    <p className="text-[10px] text-rosewood-700 font-medium">
+                      Mendapatkan <strong>2 Voucher Makan</strong>
                     </p>
                   </button>
                 </div>
 
-                {/* Badge Penjelas Kuota */}
-                <div className="bg-slate-900/90 border border-gold-500/30 p-3 rounded-xl flex items-center justify-between text-xs text-gold-300">
-                  <div className="flex items-center gap-2">
-                    <Ticket className="w-4 h-4 text-gold-400" />
-                    <span>Kuota Voucher Makan Anda:</span>
+                <div className="bg-rosewood-50 border border-rosewood-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-rosewood-900 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Ticket className="w-4 h-4 text-rosewood-700" />
+                    <span>Kuota Voucher Makan:</span>
                   </div>
-                  <span className="font-bold text-sm bg-gold-500 text-slate-950 px-2.5 py-0.5 rounded-full">
+                  <span className="font-bold text-xs bg-rosewood-700 text-white px-2.5 py-0.5 rounded-full">
                     {maritalStatus === 'married' ? '2 Porsi (Menikah)' : '1 Porsi (Single)'}
                   </span>
                 </div>
@@ -217,16 +214,16 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
             )}
 
             {/* Ucapan & Doa */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-200 block">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-rosewood-900 block">
                 Ucapan & Doa Restu
               </label>
               <textarea
                 rows={3}
                 value={wishes}
                 onChange={(e) => setWishes(e.target.value)}
-                placeholder="Tuliskan ucapan selamat dan doa untuk kedua mempelai..."
-                className="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-gold-500/30 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-gold-400 transition"
+                placeholder="Tuliskan ucapan dan doa untuk kedua mempelai..."
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-rosewood-200 text-espresso-800 placeholder-slate-400 focus:outline-none focus:border-rosewood-500 text-xs font-medium"
               />
             </div>
 
@@ -234,34 +231,34 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-600 via-gold-500 to-gold-600 text-slate-950 font-bold text-base shadow-lg shadow-gold-500/20 hover:opacity-95 transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-rosewood-700 via-rosewood-500 to-rosewood-700 text-white font-bold text-sm shadow-md hover:opacity-95 transition flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>Menyimpan...</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" />
-                  <span>Kirim Konfirmasi & Dapatkan QR Code</span>
+                  <Send className="w-4 h-4" />
+                  <span>Kirim RSVP & Dapatkan QR Code</span>
                 </>
               )}
             </button>
           </form>
         ) : (
-          /* RESULT AFTER SUBMISSION (DISPLAY QR CODE & SUMMARY) */
-          <div className="space-y-8 text-center animate-fadeIn">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Konfirmasi Kehadiran Berhasil Disimpan</span>
+          /* RESULT AFTER SUBMISSION */
+          <div className="space-y-6 text-center animate-fade-in-up">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Konfirmasi Kehadiran Berhasil</span>
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-bold text-gold-200">
+            <div className="space-y-1">
+              <h3 className="text-xl font-serif font-bold text-rosewood-900">
                 Terima Kasih, {submittedData.name}!
               </h3>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-espresso-700">
                 {submittedData.status === 'hadir'
                   ? 'Berikut adalah QR Code Voucher Makan Anda. Tunjukkan QR Code ini kepada panitia/resepsionis di lokasi acara.'
                   : 'Terima kasih telah memberitahukan konfirmasi kehadiran Anda.'}
@@ -269,58 +266,57 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
             </div>
 
             {submittedData.status === 'hadir' && (
-              <div className="space-y-6 max-w-sm mx-auto">
+              <div className="space-y-4 max-w-xs mx-auto">
                 {/* QR Box */}
-                <div className="bg-white p-6 rounded-2xl shadow-xl inline-block border-4 border-gold-400">
+                <div className="bg-white p-5 rounded-2xl shadow-lg inline-block border-2 border-rosewood-300">
                   <QRCodeSVG
                     id="qr-code-svg"
                     value={submittedData.qr_code_str}
-                    size={200}
+                    size={180}
                     level="H"
                     includeMargin={true}
                   />
-                  <p className="mt-3 text-xs font-mono font-bold text-slate-800 tracking-wider">
+                  <p className="mt-2 text-xs font-mono font-bold text-rosewood-900 tracking-wider">
                     {submittedData.qr_code_str}
                   </p>
                 </div>
 
                 {/* Quota Summary Card */}
-                <div className="bg-slate-900 p-4 rounded-2xl border border-gold-500/30 text-left space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Status Pernikahan:</span>
-                    <span className="font-semibold text-slate-200 capitalize">
+                <div className="bg-cream-100 p-4 rounded-xl border border-rosewood-200 text-left space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-espresso-700 font-medium">Status Pernikahan:</span>
+                    <span className="font-bold text-rosewood-900 capitalize">
                       {submittedData.marital_status === 'married' ? 'Sudah Menikah' : 'Single'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Hak Konsumsi / Makan:</span>
-                    <span className="font-bold text-gold-300 bg-gold-500/20 px-2 py-0.5 rounded">
+                  <div className="flex justify-between items-center">
+                    <span className="text-espresso-700 font-medium">Hak Porsi Konsumsi:</span>
+                    <span className="font-bold text-rosewood-700 bg-rosewood-100 px-2 py-0.5 rounded-full">
                       {submittedData.food_quota} Voucher Porsi
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Status Penukaran:</span>
-                    <span className={`font-semibold ${submittedData.food_redeemed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-espresso-700 font-medium">Status Penukaran:</span>
+                    <span className={`font-bold ${submittedData.food_redeemed ? 'text-emerald-700' : 'text-amber-700'}`}>
                       {submittedData.food_redeemed ? '✓ Sudah Ditukarkan' : '⏳ Belum Ditukarkan'}
                     </span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={downloadQR}
-                    className="flex-1 py-3 px-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition"
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition"
                   >
                     <Download className="w-4 h-4" />
                     <span>Unduh QR Voucher</span>
                   </button>
                   <button
                     onClick={() => setSubmittedData(null)}
-                    className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center gap-2 border border-slate-700 transition"
+                    className="py-2.5 px-3 rounded-xl bg-white hover:bg-cream-200 text-espresso-800 border border-rosewood-200 text-xs font-bold transition"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    <span>Ubah Konfirmasi</span>
+                    <span>Ubah</span>
                   </button>
                 </div>
               </div>
@@ -330,31 +326,31 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
       </div>
 
       {/* Guest Wishes Board */}
-      <div className="space-y-6 pt-6">
-        <div className="text-center space-y-1">
-          <h3 className="font-serif text-2xl font-bold text-gold-300">
-            Doa & Ucapan Dari Tamu Undangan
+      <div className="space-y-4 pt-4">
+        <div className="text-center space-y-0.5">
+          <h3 className="font-serif text-xl font-bold text-rosewood-900">
+            Doa & Ucapan Tamu Undangan
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-[11px] text-rosewood-700 font-semibold">
             ({allWishes.length} Ucapan Terkirim)
           </p>
         </div>
 
-        <div className="grid gap-4 max-h-96 overflow-y-auto pr-2">
+        <div className="grid gap-3 max-h-80 overflow-y-auto pr-1">
           {allWishes.length === 0 ? (
-            <p className="text-center text-sm text-slate-500 py-6 italic">
-              Belum ada ucapan. Jadilah yang pertama memberikan doa restu!
+            <p className="text-center text-xs text-espresso-700/60 py-4 italic">
+              Belum ada ucapan. Berikan doa restu Anda pertama kali!
             </p>
           ) : (
             allWishes.map((item, idx) => (
-              <div key={idx} className="glass-card p-4 rounded-2xl space-y-2 border border-gold-500/20">
+              <div key={idx} className="glass-card-romantic p-4 rounded-2xl space-y-1.5 border border-rosewood-200 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm text-gold-200">{item.name}</span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="font-bold text-xs text-rosewood-900">{item.name}</span>
+                  <span className="text-[9px] font-semibold text-rosewood-700 bg-rosewood-100 px-2 py-0.5 rounded-full">
                     {item.status === 'hadir' ? '✓ Hadir' : '× Tidak Hadir'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 italic leading-relaxed">
+                <p className="text-xs text-espresso-700 italic leading-relaxed">
                   "{item.wishes}"
                 </p>
               </div>
