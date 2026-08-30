@@ -5,7 +5,7 @@ import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw } from 'lu
 import { submitRSVP, getAllGuests } from '../services/store';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-export default function RsvpSection({ defaultGuestName, guestSlug }) {
+export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) {
   const [guestName, setGuestName] = useState(defaultGuestName || '');
   const [status, setStatus] = useState('hadir');
   const [maritalStatus, setMaritalStatus] = useState('single');
@@ -22,10 +22,10 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
       setGuestName(defaultGuestName);
     }
     loadWishes();
-  }, [defaultGuestName]);
+  }, [defaultGuestName, eventSlug]);
 
   const loadWishes = async () => {
-    const guests = await getAllGuests();
+    const guests = await getAllGuests(eventSlug);
     const wishesList = guests.filter((g) => g.wishes && g.wishes.trim().length > 0);
     setAllWishes(wishesList);
 
@@ -44,6 +44,7 @@ export default function RsvpSection({ defaultGuestName, guestSlug }) {
     setIsSubmitting(true);
     try {
       const result = await submitRSVP({
+        eventSlug,
         guestName: guestName.trim(),
         slug: guestSlug,
         status,

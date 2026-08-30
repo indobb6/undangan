@@ -268,7 +268,12 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
 };
 
 export const submitRSVP = async ({ eventSlug, guestName, slug, status, marital_status, wishes }) => {
-  const cleanSlug = eventSlug;
+  let cleanSlug = eventSlug;
+  if (!cleanSlug) {
+    const localMap = getLocalEventsMap();
+    const available = Object.keys(localMap);
+    cleanSlug = available.length > 0 ? available[0] : 'default-event';
+  }
   const qr_code_str = generateQRToken(guestName);
 
   const guests = await getGuestsByEvent(cleanSlug);

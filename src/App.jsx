@@ -135,7 +135,7 @@ export default function App() {
 
             <DigitalEnvelope settings={settings} />
 
-            <RsvpSection defaultGuestName={guestName} guestSlug={guestSlug} />
+            <RsvpSection eventSlug={eventSlug || settings?.event_slug} defaultGuestName={guestName} guestSlug={guestSlug} />
 
             <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
 
