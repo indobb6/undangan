@@ -1,19 +1,37 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const isSupabaseConfigured = () => {
+const getEnvUrl = () => {
   return (
-    typeof supabaseUrl === 'string' &&
-    supabaseUrl.trim().length > 0 &&
-    !supabaseUrl.includes('your-supabase-project') &&
-    typeof supabaseAnonKey === 'string' &&
-    supabaseAnonKey.trim().length > 0 &&
-    !supabaseAnonKey.includes('your-anon-key')
+    import.meta.env.VITE_SUPABASE_URL ||
+    localStorage.getItem('vite_supabase_url') ||
+    ''
   );
 };
 
-export const supabase = isSupabaseConfigured()
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const getEnvKey = () => {
+  return (
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    localStorage.getItem('vite_supabase_anon_key') ||
+    ''
+  );
+};
+
+export const isSupabaseConfigured = () => {
+  const url = getEnvUrl();
+  const key = getEnvKey();
+  return (
+    typeof url === 'string' &&
+    url.trim().length > 0 &&
+    !url.includes('your-supabase-project') &&
+    typeof key === 'string' &&
+    key.trim().length > 0 &&
+    !key.includes('your-anon-key')
+  );
+};
+
+export const getSupabaseClient = () => {
+  if (!isSupabaseConfigured()) return null;
+  return createClient(getEnvUrl().trim(), getEnvKey().trim());
+};
+
+export const supabase = isSupabaseConfigured() ? getSupabaseClient() : null;

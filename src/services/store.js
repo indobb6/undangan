@@ -163,9 +163,11 @@ export const createNewEvent = async (eventData) => {
       const { error } = await supabase.from('settings').upsert(record);
       if (error) {
         console.error('Supabase settings insert error:', error);
+        alert('⚠️ Peringatan Database Supabase: Gagal menyimpan acara ke database online. Detail: ' + (error.message || JSON.stringify(error)));
       }
     } catch (e) {
       console.error('Supabase create event failed:', e);
+      alert('⚠️ Gagal menghubungi Supabase: ' + e.message);
     }
   }
 
@@ -191,9 +193,11 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
       const { error } = await supabase.from('settings').upsert(updated);
       if (error) {
         console.error('Supabase settings update error:', error);
+        alert('⚠️ Peringatan Database Supabase: Gagal mengupdate data ke database online. Detail: ' + (error.message || JSON.stringify(error)));
       }
     } catch (e) {
       console.error('Supabase save settings failed:', e);
+      alert('⚠️ Gagal menghubungi Supabase: ' + e.message);
     }
   }
 
