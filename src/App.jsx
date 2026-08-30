@@ -128,20 +128,19 @@ export default function App() {
 
           <div className="h-[1px] bg-rosewood-100/60" />
 
-          <p className="text-[11px] text-espresso-500 italic">
-            Hubungi calon mempelai atau keluarga jika Anda belum menerima tautan undangan lengkap.
-          </p>
-
-          <button
-            onClick={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.set('admin', 'true');
-              window.location.href = url.toString();
-            }}
-            className="w-full py-3 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 text-white font-bold text-xs shadow-md transition"
-          >
-            Masuk ke Dashboard Admin
-          </button>
+          <div className="space-y-3">
+            <p className="text-[11px] text-espresso-700 font-medium">
+              Tertarik membuat undangan digital serupa? Silakan hubungi kami untuk pemesanan:
+            </p>
+            <a
+              href="https://instagram.com/yaserazaramadhan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-rosewood-200 bg-rosewood-50/50 text-rosewood-700 hover:bg-rosewood-50 text-xs font-bold transition shadow-sm w-full"
+            >
+              <span>📸 Instagram: @yaserazaramadhan</span>
+            </a>
+          </div>
         </div>
       </div>
     );
