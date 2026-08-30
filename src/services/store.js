@@ -160,9 +160,12 @@ export const createNewEvent = async (eventData) => {
   // Then attempt Supabase (non-blocking for UI)
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('settings').upsert(record, { onConflict: 'id' });
+      const { error } = await supabase.from('settings').upsert(record);
+      if (error) {
+        console.error('Supabase settings insert error:', error);
+      }
     } catch (e) {
-      console.error('Supabase create event failed (local still saved):', e);
+      console.error('Supabase create event failed:', e);
     }
   }
 
@@ -185,7 +188,10 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
 
   if (isSupabaseConfigured()) {
     try {
-      await supabase.from('settings').upsert(updated, { onConflict: 'id' });
+      const { error } = await supabase.from('settings').upsert(updated);
+      if (error) {
+        console.error('Supabase settings update error:', error);
+      }
     } catch (e) {
       console.error('Supabase save settings failed:', e);
     }
@@ -282,10 +288,12 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
   if (isSupabaseConfigured()) {
     try {
       if (record.id && !record.id.startsWith('g-')) {
-        await supabase.from('guests').upsert(record);
+        const { error } = await supabase.from('guests').upsert(record);
+        if (error) console.error('Supabase guest upsert error:', error);
       } else {
         const { id, ...newRec } = record;
-        const { data } = await supabase.from('guests').insert(newRec).select().single();
+        const { data, error } = await supabase.from('guests').insert(newRec).select().single();
+        if (error) console.error('Supabase guest insert error:', error);
         if (data) record.id = data.id;
       }
     } catch (e) {
