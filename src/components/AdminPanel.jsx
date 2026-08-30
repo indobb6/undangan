@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
-  getGuestsByEvent, addOrUpdateGuest, deleteGuest 
+  getGuestsByEvent, addOrUpdateGuest, deleteGuest, deleteEvent 
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -94,6 +94,34 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     setNewEventData({ event_slug: '', groom_name: '', bride_name: '', akad_date: '2026-09-20' });
     if (onSwitchEvent) onSwitchEvent(created.event_slug);
     alert(`Acara "${created.groom_name} & ${created.bride_name}" berhasil dibuat!`);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!selectedSlug) return;
+    const isConfirmed = window.confirm(
+      `APAKAH ANDA YAKIN?\n\nIni akan menghapus seluruh data acara "${settings?.groom_name || ''} & ${settings?.bride_name || ''}" beserta semua data tamu, RSVP, dan voucher makan.\n\nTindakan ini tidak dapat dibatalkan!`
+    );
+    if (!isConfirmed) return;
+
+    await deleteEvent(selectedSlug);
+    alert('Acara berhasil dihapus!');
+
+    const allEvts = await getAllEvents();
+    setEventsMap(allEvts);
+    const availableSlugs = Object.keys(allEvts);
+
+    if (availableSlugs.length === 0) {
+      setSelectedSlug('');
+      setSettingsState(null);
+      setGuests([]);
+      setActiveTab('new_event');
+      if (onSwitchEvent) onSwitchEvent('');
+    } else {
+      const nextActive = availableSlugs[0];
+      setSelectedSlug(nextActive);
+      loadEventSpecificData(nextActive);
+      if (onSwitchEvent) onSwitchEvent(nextActive);
+    }
   };
 
   const handleAddGuest = async (e) => {
@@ -567,7 +595,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
               </div>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-4 flex flex-wrap gap-3">
               <button
                 type="submit"
                 disabled={isSaving}
@@ -575,6 +603,15 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
               >
                 <Save className="w-4 h-4" />
                 <span>Simpan Seluruh Perubahan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteEvent}
+                className="py-3.5 px-6 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-800 font-bold text-sm flex items-center justify-center gap-2 transition shadow-md"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Acara Ini</span>
               </button>
             </div>
           </form>

@@ -194,6 +194,35 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
   return updated;
 };
 
+export const deleteEvent = async (eventSlug) => {
+  if (!eventSlug) return false;
+
+  // 1. Delete from local storage
+  const eventsMap = getLocalEventsMap();
+  delete eventsMap[eventSlug];
+  saveLocalEventsMap(eventsMap);
+
+  // 2. Delete guests of this event from local storage
+  const localGuests = getLocalGuests();
+  const remainingGuests = localGuests.filter((g) => g.event_slug !== eventSlug);
+  saveLocalGuests(remainingGuests);
+
+  // 3. Delete from Supabase if configured
+  if (isSupabaseConfigured()) {
+    try {
+      // Delete guests first
+      await supabase.from('guests').delete().eq('event_slug', eventSlug);
+      // Delete event settings
+      await supabase.from('settings').delete().eq('event_slug', eventSlug);
+      await supabase.from('settings').delete().eq('id', eventSlug);
+    } catch (e) {
+      console.error('Supabase delete event failed:', e);
+    }
+  }
+
+  return true;
+};
+
 // ──────────────────────────────────────────────────
 // GUESTS CRUD
 // ──────────────────────────────────────────────────
