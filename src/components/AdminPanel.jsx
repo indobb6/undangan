@@ -511,6 +511,16 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Pria (opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: @fauzi.pratama"
+                    value={settings.groom_instagram || ''}
+                    onChange={(e) => setSettingsState({ ...settings, groom_instagram: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -530,6 +540,16 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     type="text"
                     value={settings.bride_parents || ''}
                     onChange={(e) => setSettingsState({ ...settings, bride_parents: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Instagram Mempelai Wanita (opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: @nadiah.rahma"
+                    value={settings.bride_instagram || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bride_instagram: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>

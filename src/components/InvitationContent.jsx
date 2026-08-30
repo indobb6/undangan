@@ -79,33 +79,65 @@ export default function InvitationContent({ settings }) {
           {/* Groom & Bride Cards - Slide Left & Slide Right */}
           <div className="grid grid-cols-2 gap-3 items-center pt-2">
             {/* Groom - Slide Left */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-left">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
-                <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
-                  {settings.groom_name?.charAt(0) || 'F'}
+            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-left flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
+                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
+                    {settings.groom_name?.charAt(0) || 'F'}
+                  </div>
                 </div>
+                <h3 className="font-serif text-sm text-rosewood-900 font-bold">
+                  {settings.groom_name || 'Mempelai Pria'}
+                </h3>
+                <p className="text-[10px] text-espresso-700 leading-tight">
+                  {settings.groom_parents}
+                </p>
               </div>
-              <h3 className="font-serif text-sm text-rosewood-900 font-bold">
-                {settings.groom_name || 'Fauzi Pratama'}
-              </h3>
-              <p className="text-[10px] text-espresso-700 leading-tight">
-                {settings.groom_parents}
-              </p>
+
+              {settings.groom_instagram && (
+                <div className="pt-1">
+                  <a
+                    href={`https://instagram.com/${settings.groom_instagram.replace('@', '').trim()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200/80 text-[10px] text-rosewood-800 font-semibold transition"
+                  >
+                    <Instagram className="w-3 h-3 text-rosewood-600" />
+                    <span>@{settings.groom_instagram.replace('@', '').trim()}</span>
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Bride - Slide Right */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-right">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
-                <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
-                  {settings.bride_name?.charAt(0) || 'N'}
+            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-right flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
+                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
+                    {settings.bride_name?.charAt(0) || 'N'}
+                  </div>
                 </div>
+                <h3 className="font-serif text-sm text-rosewood-900 font-bold">
+                  {settings.bride_name || 'Mempelai Wanita'}
+                </h3>
+                <p className="text-[10px] text-espresso-700 leading-tight">
+                  {settings.bride_parents}
+                </p>
               </div>
-              <h3 className="font-serif text-sm text-rosewood-900 font-bold">
-                {settings.bride_name || 'Nadiah Rahmawati'}
-              </h3>
-              <p className="text-[10px] text-espresso-700 leading-tight">
-                {settings.bride_parents}
-              </p>
+
+              {settings.bride_instagram && (
+                <div className="pt-1">
+                  <a
+                    href={`https://instagram.com/${settings.bride_instagram.replace('@', '').trim()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200/80 text-[10px] text-rosewood-800 font-semibold transition"
+                  >
+                    <Instagram className="w-3 h-3 text-rosewood-600" />
+                    <span>@{settings.bride_instagram.replace('@', '').trim()}</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
