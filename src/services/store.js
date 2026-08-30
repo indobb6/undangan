@@ -73,23 +73,20 @@ export const generateQRToken = (name) => {
 // EVENTS CRUD
 // ──────────────────────────────────────────────────
 
-/**
- * Returns a merged map of events from localStorage + Supabase.
- * localStorage is always treated as authoritative for recently-created events.
- */
 export const getAllEvents = async () => {
-  // Start from whatever is in localStorage (includes freshly created events)
   const localMap = getLocalEventsMap();
 
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase.from('settings').select('*');
+      if (error) {
+        console.error('Supabase getAllEvents error:', error);
+      }
       if (!error && data && data.length > 0) {
-        // Merge Supabase data INTO local map (local wins on conflicts)
         const merged = { ...localMap };
         data.forEach((evt) => {
           const key = evt.event_slug || evt.id;
-          if (!merged[key]) {
+          if (key) {
             merged[key] = evt;
           }
         });
@@ -105,28 +102,33 @@ export const getAllEvents = async () => {
 };
 
 export const getWeddingSettings = async (eventSlug) => {
-  // 1. Quick local lookup first (0ms)
   const localMap = getLocalEventsMap();
   const availableSlugs = Object.keys(localMap);
 
   const targetSlug = eventSlug || (availableSlugs.length > 0 ? availableSlugs[0] : null);
 
-  if (targetSlug && localMap[targetSlug]) {
-    return localMap[targetSlug];
-  }
-
-  // 2. Try Supabase if not found locally
+  // 1. Try Supabase first if configured, to ensure cross-device sync
   if (targetSlug && isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .eq('event_slug', targetSlug)
+        .or(`event_slug.eq.${targetSlug},id.eq.${targetSlug}`)
         .maybeSingle();
-      if (!error && data) return data;
+
+      if (!error && data) {
+        localMap[targetSlug] = data;
+        saveLocalEventsMap(localMap);
+        return data;
+      }
     } catch (e) {
       console.warn('Supabase fetch settings error:', e);
     }
+  }
+
+  // 2. Local storage lookup fallback
+  if (targetSlug && localMap[targetSlug]) {
+    return localMap[targetSlug];
   }
 
   // 3. Return a generic placeholder so the UI never gets stuck on null
@@ -152,18 +154,35 @@ export const createNewEvent = async (eventData) => {
     updated_at: new Date().toISOString()
   };
 
-  // ★ Save to localStorage FIRST so getAllEvents sees it immediately
+  // 1. Save to localStorage FIRST
   const eventsMap = getLocalEventsMap();
   eventsMap[event_slug] = record;
   saveLocalEventsMap(eventsMap);
 
-  // Then attempt Supabase (non-blocking for UI)
+  // 2. Save to Supabase (with multi-strategy fallback)
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('settings').upsert(record);
+      let { error } = await supabase.from('settings').upsert(record, { onConflict: 'event_slug' });
+      
+      // If error (e.g. conflict on id vs event_slug), try standard upsert
+      if (error) {
+        console.warn('First upsert strategy failed, trying alternative:', error);
+        const { error: err2 } = await supabase.from('settings').upsert(record);
+        if (!err2) {
+          error = null;
+        } else {
+          // Try inserting without explicit id if Supabase uses auto-generated UUID/BigInt
+          const { id, ...recordWithoutId } = record;
+          const { error: err3 } = await supabase.from('settings').insert(recordWithoutId);
+          if (!err3) {
+            error = null;
+          }
+        }
+      }
+
       if (error) {
         console.error('Supabase settings insert error:', error);
-        alert('⚠️ Peringatan Database Supabase: Gagal menyimpan acara ke database online. Detail: ' + (error.message || JSON.stringify(error)));
+        alert('⚠️ Supabase Error: Gagal menyimpan ke database online.\n\nPesan Error: ' + (error.message || JSON.stringify(error)) + '\n\nPetunjuk: Silakan jalankan ulang skrip SQL di Supabase SQL Editor.');
       }
     } catch (e) {
       console.error('Supabase create event failed:', e);
@@ -190,10 +209,26 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
 
   if (isSupabaseConfigured()) {
     try {
-      const { error } = await supabase.from('settings').upsert(updated);
-      if (error) {
-        console.error('Supabase settings update error:', error);
-        alert('⚠️ Peringatan Database Supabase: Gagal mengupdate data ke database online. Detail: ' + (error.message || JSON.stringify(error)));
+      // 1. Try update by event_slug
+      const { data, error: updateError } = await supabase
+        .from('settings')
+        .update(updated)
+        .eq('event_slug', cleanSlug)
+        .select();
+
+      // 2. If row did not exist yet, upsert it
+      if (!updateError && (!data || data.length === 0)) {
+        const { error: upsertError } = await supabase.from('settings').upsert(updated, { onConflict: 'event_slug' });
+        if (upsertError) {
+          console.error('Supabase settings upsert error:', upsertError);
+          alert('⚠️ Supabase Error: ' + (upsertError.message || JSON.stringify(upsertError)));
+        }
+      } else if (updateError) {
+        const { error: upsertError } = await supabase.from('settings').upsert(updated);
+        if (upsertError) {
+          console.error('Supabase settings update error:', updateError);
+          alert('⚠️ Supabase Error: ' + (updateError.message || JSON.stringify(updateError)));
+        }
       }
     } catch (e) {
       console.error('Supabase save settings failed:', e);
@@ -220,9 +255,7 @@ export const deleteEvent = async (eventSlug) => {
   // 3. Delete from Supabase if configured
   if (isSupabaseConfigured()) {
     try {
-      // Delete guests first
       await supabase.from('guests').delete().eq('event_slug', eventSlug);
-      // Delete event settings
       await supabase.from('settings').delete().eq('event_slug', eventSlug);
       await supabase.from('settings').delete().eq('id', eventSlug);
     } catch (e) {
