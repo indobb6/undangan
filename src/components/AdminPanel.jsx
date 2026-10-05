@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
-  Database, Music, CreditCard, Check, Search, Share2, Layers, Heart 
+  Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
+  FileSpreadsheet, Download, Filter, ArrowUpDown
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -17,6 +19,9 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   const [guests, setGuests] = useState([]);
   const [newGuestName, setNewGuestName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [rsvpFilter, setRsvpFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('rsvp');
+  const [exportFeedback, setExportFeedback] = useState(null);
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [copiedAdminLink, setCopiedAdminLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -165,12 +170,125 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     setTimeout(() => setCopiedAdminLink(false), 2500);
   };
 
-  const filteredGuests = guests.filter((g) =>
-    g.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getRsvpPriority = (status) => {
+    if (status === 'hadir') return 1;
+    if (status === 'tidak_hadir') return 3;
+    return 2; // pending / belum konfirmasi
+  };
+
+  const handleExportExcel = () => {
+    if (!guests || guests.length === 0) {
+      alert('Belum ada data tamu di acara ini untuk diekspor!');
+      return;
+    }
+
+    // Urutkan RSVP dari yang bisa hadir (1) -> belum konfirmasi (2) -> tidak bisa hadir (3)
+    const sortedForExport = [...guests].sort((a, b) => {
+      const pA = getRsvpPriority(a.status);
+      const pB = getRsvpPriority(b.status);
+      if (pA !== pB) return pA - pB;
+      return (a.name || '').localeCompare(b.name || '', 'id');
+    });
+
+    const baseUrl = window.location.origin + window.location.pathname;
+
+    const dataRows = sortedForExport.map((g, index) => {
+      let rsvpLabel = 'Belum Konfirmasi';
+      if (g.status === 'hadir') rsvpLabel = 'Hadir';
+      else if (g.status === 'tidak_hadir') rsvpLabel = 'Tidak Hadir';
+
+      const maritalLabel = g.marital_status === 'married' ? 'Menikah' : 'Single';
+      const quota = g.food_quota || (g.marital_status === 'married' ? 2 : 1);
+      const foodStatusLabel = g.food_redeemed ? 'Sudah Ditukarkan' : 'Belum Ditukarkan';
+      const invitationUrl = `${baseUrl}?event=${selectedSlug}&to=${encodeURIComponent(g.name)}`;
+
+      return {
+        'No': index + 1,
+        'Nama Tamu': g.name || '-',
+        'Status RSVP': rsvpLabel,
+        'Status Pernikahan': maritalLabel,
+        'Kuota Makan (Porsi)': quota,
+        'Status Kupon Makan': foodStatusLabel,
+        'Kode QR / Token': g.qr_code_str || '-',
+        'Ucapan & Doa': g.wishes || '-',
+        'Link Undangan Tamu': invitationUrl
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataRows);
+
+    // Atur lebar kolom agar proporsional dan mudah dibaca di Microsoft Excel
+    worksheet['!cols'] = [
+      { wch: 6 },  // No
+      { wch: 28 }, // Nama Tamu
+      { wch: 20 }, // Status RSVP
+      { wch: 18 }, // Status Pernikahan
+      { wch: 22 }, // Kuota Makan (Porsi)
+      { wch: 22 }, // Status Kupon Makan
+      { wch: 20 }, // Kode QR / Token
+      { wch: 40 }, // Ucapan & Doa
+      { wch: 55 }, // Link Undangan Tamu
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Daftar Tamu (Urut RSVP)');
+
+    // Sheet 2: Ringkasan statistik kehadiran
+    const summaryRows = [
+      { 'Kategori': 'Nama Acara', 'Keterangan': `${settings?.groom_name || ''} & ${settings?.bride_name || ''}` },
+      { 'Kategori': 'Slug Acara', 'Keterangan': selectedSlug },
+      { 'Kategori': 'Total Tamu Diundang', 'Keterangan': `${guests.length} Tamu` },
+      { 'Kategori': 'Konfirmasi Bisa Hadir', 'Keterangan': `${guests.filter((g) => g.status === 'hadir').length} Tamu` },
+      { 'Kategori': 'Belum Konfirmasi', 'Keterangan': `${guests.filter((g) => g.status !== 'hadir' && g.status !== 'tidak_hadir').length} Tamu` },
+      { 'Kategori': 'Konfirmasi Tidak Hadir', 'Keterangan': `${guests.filter((g) => g.status === 'tidak_hadir').length} Tamu` },
+      { 'Kategori': 'Total Kuota Porsi Makan (Hadir)', 'Keterangan': `${totalQuota} Porsi` },
+      { 'Kategori': 'Kupon Makan Telah Ditukarkan', 'Keterangan': `${totalRedeemed} Tamu` },
+      { 'Kategori': 'Waktu Ekspor', 'Keterangan': new Date().toLocaleString('id-ID') }
+    ];
+    const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
+    summarySheet['!cols'] = [{ wch: 32 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan RSVP');
+
+    const cleanGroom = (settings?.groom_name || 'Groom').split(',')[0].trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    const cleanBride = (settings?.bride_name || 'Bride').split(',')[0].trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `Daftar_Tamu_${cleanGroom}_${cleanBride}_${dateStr}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+
+    setExportFeedback(`✓ Berhasil mengunduh "${fileName}"!`);
+    setTimeout(() => setExportFeedback(null), 4000);
+  };
+
+  const filteredGuests = guests
+    .filter((g) => {
+      const matchSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchSearch) return false;
+      if (rsvpFilter === 'all') return true;
+      if (rsvpFilter === 'hadir') return g.status === 'hadir';
+      if (rsvpFilter === 'tidak_hadir') return g.status === 'tidak_hadir';
+      if (rsvpFilter === 'pending') return g.status !== 'hadir' && g.status !== 'tidak_hadir';
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'rsvp') {
+        const diff = getRsvpPriority(a.status) - getRsvpPriority(b.status);
+        if (diff !== 0) return diff;
+        return (a.name || '').localeCompare(b.name || '', 'id');
+      }
+      if (sortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '', 'id');
+      }
+      if (sortBy === 'newest') {
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      }
+      return 0;
+    });
 
   const totalGuests = guests.length;
   const attendingCount = guests.filter((g) => g.status === 'hadir').length;
+  const pendingCount = guests.filter((g) => g.status !== 'hadir' && g.status !== 'tidak_hadir').length;
+  const notAttendingCount = guests.filter((g) => g.status === 'tidak_hadir').length;
   const totalQuota = guests
     .filter((g) => g.status === 'hadir')
     .reduce((acc, curr) => acc + (curr.food_quota || 1), 0);
@@ -366,16 +484,75 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
               </form>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari nama tamu..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-rose-400"
-              />
+            {/* Search, Filter & Export Controls */}
+            <div className="space-y-3">
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari nama tamu..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+
+                {/* Filter, Sort & Export Actions */}
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                  {/* RSVP Filter Dropdown */}
+                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1">
+                    <Filter className="w-3.5 h-3.5 text-rosewood-400 shrink-0" />
+                    <select
+                      value={rsvpFilter}
+                      onChange={(e) => setRsvpFilter(e.target.value)}
+                      className="bg-transparent text-slate-300 text-xs font-medium focus:outline-none cursor-pointer py-1.5"
+                      title="Filter berdasarkan status RSVP"
+                    >
+                      <option value="all" className="bg-slate-900">Semua RSVP ({totalGuests})</option>
+                      <option value="hadir" className="bg-slate-900">✓ Bisa Hadir ({attendingCount})</option>
+                      <option value="pending" className="bg-slate-900">⏳ Belum Konfirmasi ({pendingCount})</option>
+                      <option value="tidak_hadir" className="bg-slate-900">× Tidak Bisa Hadir ({notAttendingCount})</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Order Dropdown */}
+                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-rosewood-400 shrink-0" />
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-slate-300 text-xs font-medium focus:outline-none cursor-pointer py-1.5"
+                      title="Urutkan tampilan daftar tamu"
+                    >
+                      <option value="rsvp" className="bg-slate-900">Urut RSVP (Hadir → Tidak Hadir)</option>
+                      <option value="name" className="bg-slate-900">Urut Nama (A-Z)</option>
+                      <option value="newest" className="bg-slate-900">Urut Tamu Terbaru</option>
+                    </select>
+                  </div>
+
+                  {/* Ekspor ke Excel Button */}
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={guests.length === 0}
+                    className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950/40 shrink-0"
+                    title="Ekspor seluruh data tamu ke Excel (.xlsx) diurutkan dari yang bisa hadir sampai yang tidak bisa hadir"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+                    <span>Ekspor ke Excel</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Export Success Feedback Toast */}
+              {exportFeedback && (
+                <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>{exportFeedback}</span>
+                </div>
+              )}
             </div>
 
             {/* Guests Table */}
