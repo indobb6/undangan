@@ -84,6 +84,20 @@
   transform: translate(0, 0) !important;
 }
 
+/* --- LUXURIOUS ENVELOPE OPENING TRANSITIONS --- */
+.envelope-lift {
+  transition: transform 1.25s cubic-bezier(0.22, 1, 0.36, 1), 
+              opacity 1.25s cubic-bezier(0.22, 1, 0.36, 1), 
+              filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity, filter;
+}
+
+.content-reveal {
+  transition: transform 1.25s cubic-bezier(0.22, 1, 0.36, 1), 
+              opacity 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
 /* Scrollbar Hide */
 ::-webkit-scrollbar {
   display: none;

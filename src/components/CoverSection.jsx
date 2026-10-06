@@ -1,17 +1,23 @@
 import React from 'react';
 import { MailOpen, Heart, Sparkles } from 'lucide-react';
 
-export default function CoverSection({ settings, guestName, onOpenInvitation }) {
+export default function CoverSection({ settings, guestName, isOpen, onOpenInvitation }) {
   const groomFirst = settings.groom_name?.split(',')[0] || 'Fauzi';
   const brideFirst = settings.bride_name?.split(',')[0] || 'Nadiah';
 
   return (
-    <div className="relative min-h-full h-full flex flex-col items-center justify-between py-10 px-4 text-center bg-gradient-to-b from-cream-100 via-rosewood-50 to-cream-100 text-espresso-800 selection:bg-rosewood-200 overflow-hidden">
+    <div className={`relative min-h-full h-full flex flex-col items-center justify-between py-10 px-4 text-center bg-gradient-to-b from-cream-100 via-rosewood-50 to-cream-100 text-espresso-800 selection:bg-rosewood-200 overflow-hidden transition-all duration-1000 ${
+      isOpen ? 'pointer-events-none' : ''
+    }`}>
       {/* Soft Romantic Glow & Floral Accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[440px] h-[440px] sm:h-[540px] bg-gradient-to-b from-rosewood-100/50 via-champagne-200/40 to-transparent rounded-t-full blur-3xl pointer-events-none" />
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[440px] h-[440px] sm:h-[540px] bg-gradient-to-b from-rosewood-100/50 via-champagne-200/40 to-transparent rounded-t-full blur-3xl pointer-events-none transition-opacity duration-1000 ${
+        isOpen ? 'opacity-0' : 'opacity-100'
+      }`} />
 
       {/* Romantic Floral Border Frame */}
-      <div className="absolute inset-4 sm:inset-6 border-2 border-rosewood-300/40 rounded-t-[170px] rounded-b-[40px] pointer-events-none flex flex-col justify-between p-4 shadow-inner">
+      <div className={`absolute inset-4 sm:inset-6 border-2 border-rosewood-300/40 rounded-t-[170px] rounded-b-[40px] pointer-events-none flex flex-col justify-between p-4 shadow-inner transition-opacity duration-700 ease-out ${
+        isOpen ? 'opacity-0' : 'opacity-100'
+      }`}>
         <div className="text-center text-rosewood-700/70 text-[10px] tracking-widest font-serif pt-3">
           ❀ THE WEDDING CELEBRATION ❀
         </div>
@@ -21,8 +27,10 @@ export default function CoverSection({ settings, guestName, onOpenInvitation }) 
       </div>
 
       {/* Top Header Tag */}
-      <div className="relative z-10 mt-6 animate-fade-in-up">
-        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/80 border border-rosewood-200 text-rosewood-700 text-[11px] font-semibold tracking-widest uppercase shadow-sm backdrop-blur-md">
+      <div className={`relative z-10 mt-6 transition-all duration-700 ease-out ${
+        isOpen ? 'opacity-0 -translate-y-5 scale-95' : 'opacity-100 translate-y-0 scale-100'
+      }`}>
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/85 border border-rosewood-200 text-rosewood-700 text-[11px] font-semibold tracking-widest uppercase shadow-sm backdrop-blur-md">
           <Sparkles className="w-3 h-3 text-champagne-500" />
           <span>Walimatul 'Ursy</span>
           <Sparkles className="w-3 h-3 text-champagne-500" />
@@ -30,7 +38,9 @@ export default function CoverSection({ settings, guestName, onOpenInvitation }) 
       </div>
 
       {/* Center Names & Personalized Guest Card */}
-      <div className="relative z-10 my-auto py-4 space-y-4 max-w-sm mx-auto">
+      <div className={`relative z-10 my-auto py-4 space-y-4 max-w-sm mx-auto transition-all duration-800 ease-out delay-75 ${
+        isOpen ? 'opacity-0 -translate-y-6 scale-[0.97]' : 'opacity-100 translate-y-0 scale-100'
+      }`}>
         <p className="text-rosewood-700 font-serif tracking-widest text-xs uppercase">
           Undangan Pernikahan
         </p>
@@ -51,7 +61,7 @@ export default function CoverSection({ settings, guestName, onOpenInvitation }) 
         </p>
 
         {/* Personalized Guest Box */}
-        <div className="glass-card-romantic p-5 rounded-2xl border border-rosewood-200 shadow-xl space-y-2 transform transition hover:scale-[1.02] mt-4">
+        <div className="glass-card-romantic p-5 rounded-2xl border border-rosewood-200 shadow-xl space-y-2 mt-4">
           <p className="text-[11px] text-rosewood-700/80 font-sans uppercase tracking-wider font-semibold">
             Kepada Yth. Bapak/Ibu/Saudara/i:
           </p>
@@ -67,10 +77,13 @@ export default function CoverSection({ settings, guestName, onOpenInvitation }) 
       </div>
 
       {/* Bottom Button */}
-      <div className="relative z-10 mb-6">
+      <div className={`relative z-10 mb-6 transition-all duration-500 ease-out ${
+        isOpen ? 'opacity-0 scale-90 translate-y-3 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
+      }`}>
         <button
           onClick={onOpenInvitation}
-          className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-r from-rosewood-700 via-rosewood-500 to-rosewood-700 text-white font-bold tracking-wide shadow-lg shadow-rosewood-500/30 hover:shadow-rosewood-500/50 transform transition hover:-translate-y-1 active:translate-y-0 text-sm"
+          disabled={isOpen}
+          className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-r from-rosewood-700 via-rosewood-500 to-rosewood-700 text-white font-bold tracking-wide shadow-lg shadow-rosewood-500/30 hover:shadow-rosewood-500/50 transform transition duration-300 hover:-translate-y-1 active:scale-95 text-sm"
         >
           <MailOpen className="w-4 h-4 text-white group-hover:rotate-12 transition-transform duration-300" />
           <span>Buka Undangan</span>

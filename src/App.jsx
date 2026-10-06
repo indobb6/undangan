@@ -96,22 +96,33 @@ export default function App() {
     setIsOpen(true);
     setStartMusic(true);
 
-    // Efek elegan: semburan lembut kelopak emas & mawar saat undangan dibuka
+    // Efek elegan: semburan lembut kelopak mawar & kilauan emas bertahap
     try {
       confetti({
-        particleCount: 50,
-        spread: 75,
-        origin: { y: 0.8 },
+        particleCount: 45,
+        spread: 80,
+        origin: { y: 0.7 },
         colors: ['#d4a237', '#b85b65', '#8c3842', '#fce7f3', '#fdfbf7'],
         disableForReducedMotion: true
       });
+
+      // Gelombang kedua lembut setelah jeda untuk nuansa magis
+      setTimeout(() => {
+        confetti({
+          particleCount: 25,
+          spread: 90,
+          origin: { y: 0.65 },
+          colors: ['#d4a237', '#fae0a2', '#ffffff'],
+          disableForReducedMotion: true
+        });
+      }, 350);
     } catch { /* ignore */ }
 
-    // Setelah animasi slide-up cover tuntas (700ms), cover di-unmount permanen
+    // Setelah animasi melayang lembut (1250ms) selesai, cover di-unmount permanen
     // sehingga saat di-scroll ke paling atas, hanya mentok sampai Beranda (#home)
     setTimeout(() => {
       setIsCoverDismissed(true);
-    }, 700);
+    }, 1250);
   };
 
   const scrollToSection = (id) => {
@@ -187,31 +198,32 @@ export default function App() {
       {settings && (
         <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
           
-          {/* COVER SECTION OVERLAY (SLIDE-UP KELUAR & DI-UNMOUNT AGAR SCROLL MENTOK DI BERANDA) */}
+          {/* COVER SECTION OVERLAY (ANIMASI BUKA AMPLOP MEWAH & MELAYANG HALUS) */}
           {!isCoverDismissed && (
             <div 
-              className={`absolute inset-0 z-30 w-full h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              className={`absolute inset-0 z-30 w-full h-full envelope-lift ${
                 isOpen 
-                  ? '-translate-y-full opacity-0 pointer-events-none' 
-                  : 'translate-y-0 opacity-100'
+                  ? '-translate-y-[102%] opacity-0 pointer-events-none scale-[1.03] blur-[1px]' 
+                  : 'translate-y-0 opacity-100 scale-100 blur-0'
               }`}
             >
               <CoverSection
                 settings={settings}
                 guestName={guestName}
+                isOpen={isOpen}
                 onOpenInvitation={handleOpenInvitation}
               />
             </div>
           )}
 
-          {/* MAIN SCROLL CONTAINER (BERANDA #home ADALAH ELEMEN PALING ATAS) */}
+          {/* MAIN SCROLL CONTAINER (MEKAR LEMBUT KETIKA COVER DIBUKA) */}
           <div 
             ref={scrollContainerRef}
             id="main-scroll-container"
-            className={`relative h-full w-full scroll-smooth ${
+            className={`relative h-full w-full scroll-smooth content-reveal ${
               isOpen 
-                ? 'overflow-y-auto' 
-                : 'overflow-hidden'
+                ? 'overflow-y-auto opacity-100 scale-100' 
+                : 'overflow-hidden opacity-85 scale-[0.97]'
             }`}
           >
             {/* INVITATION CONTENT:
