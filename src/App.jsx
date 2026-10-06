@@ -6,7 +6,7 @@ import AdminPanel from './components/AdminPanel';
 import QRScannerModal from './components/QRScannerModal';
 import MusicPlayer from './components/MusicPlayer';
 import DigitalEnvelope from './components/DigitalEnvelope';
-import FloralGate from './components/FloralGate';
+import confetti from 'canvas-confetti';
 import { getWeddingSettings, getAllEvents } from './services/store';
 import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
@@ -17,7 +17,6 @@ export default function App() {
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [isGateActive, setIsGateActive] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isClientMode, setIsClientMode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -92,29 +91,41 @@ export default function App() {
   };
 
   const handleOpenInvitation = () => {
-    setIsGateActive(true);
     setStartMusic(true);
     setIsOpen(true);
 
-    // Bunga bergerak-gerak kecil terlebih dahulu selama 2.2 detik, lalu membuka seperti gerbang dan layar otomatis scroll ke #home
-    setTimeout(() => {
-      const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
-      const homeEl = document.getElementById('home');
-      if (container && homeEl) {
-        container.scrollTo({
-          top: homeEl.offsetTop,
-          behavior: 'smooth'
-        });
-      } else if (container) {
-        container.scrollTo({
-          top: container.clientHeight,
-          behavior: 'smooth'
-        });
-      }
-      if (homeEl) {
-        homeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 2200);
+    // Efek elegan: semburan lembut kelopak emas & mawar saat undangan dibuka
+    try {
+      confetti({
+        particleCount: 50,
+        spread: 75,
+        origin: { y: 0.8 },
+        colors: ['#d4a237', '#b85b65', '#8c3842', '#fce7f3', '#fdfbf7'],
+        disableForReducedMotion: true
+      });
+    } catch { /* ignore */ }
+
+    // Langsung otomatis scroll halus menuju bagian isi undangan (#home)
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
+        const homeEl = document.getElementById('home');
+        if (container && homeEl) {
+          container.scrollTo({
+            top: homeEl.offsetTop,
+            behavior: 'smooth'
+          });
+        } else if (container) {
+          container.scrollTo({
+            top: container.clientHeight,
+            behavior: 'smooth'
+          });
+        }
+        if (homeEl) {
+          homeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    });
   };
 
   const scrollToSection = (id) => {
@@ -183,10 +194,6 @@ export default function App() {
       {/* MOBILE FRAME VIEWPORT CONTAINER */}
       {settings && (
         <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
-          
-          {/* GERBANG BUNGA PEMBUKA (HANYA MUNCUL SETELAH KLIK BUKA UNDANGAN) */}
-          <FloralGate isActive={isGateActive} />
-
           {/* MAIN SCROLL CONTAINER */}
           <div 
             ref={scrollContainerRef}
