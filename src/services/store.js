@@ -7,6 +7,8 @@ const GENERIC_EVENT_TEMPLATE = {
   bride_parents: 'Putri dari Bapak & Ibu...',
   groom_instagram: '',
   bride_instagram: '',
+  groom_photo: '',
+  bride_photo: '',
   akad_date: '2026-09-20',
   akad_time: '08:00 WIB - Selesai',
   akad_location: 'Lokasi Akad Nikah',

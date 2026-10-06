@@ -1,33 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, ExternalLink, Instagram } from 'lucide-react';
+import React from 'react';
+import { Calendar, Clock, MapPin, ExternalLink, Instagram, Heart } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 export default function InvitationContent({ settings }) {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
   useScrollReveal();
-
-  useEffect(() => {
-    const targetDate = new Date(`${settings.akad_date || '2026-08-29'}T08:00:00`).getTime();
-
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const difference = targetDate - now;
-
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000),
-        });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [settings.akad_date]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Sabtu, 29 Agustus 2026';
@@ -49,47 +25,103 @@ export default function InvitationContent({ settings }) {
 
   return (
     <>
-      {/* PAGE 1: BERANDA / COUPLE PROFILE (FULL PAGE) */}
-      <section id="home" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
-        <div className="w-full space-y-6 text-center my-auto">
-          {/* Header Title - Slide Up */}
-          <div className="space-y-1 slide-up">
-            <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">The Wedding of</p>
-            <h1 className="font-script text-4xl sm:text-5xl text-romantic-gradient py-1 font-bold">
+      {/* ========================================================= */}
+      {/* HALAMAN 1: THE WEDDING OF & AYAT AL-QUR'AN (FULL PAGE)    */}
+      {/* ========================================================= */}
+      <section id="home" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-5 relative">
+        <div className="w-full max-w-sm mx-auto space-y-7 text-center my-auto">
+          {/* Header The Wedding Of - Slide Up */}
+          <div className="space-y-2 slide-up">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rosewood-100 text-rosewood-800 text-[10px] font-bold uppercase tracking-widest">
+              <Heart className="w-3 h-3 text-rosewood-600 fill-rosewood-600" />
+              <span>The Wedding of</span>
+            </div>
+
+            <h1 className="font-script text-4xl sm:text-5xl text-romantic-gradient py-2 font-bold leading-tight">
               {groomFirst} & {brideFirst}
             </h1>
-            <p className="text-xs text-espresso-700 font-serif font-semibold">
-              {formatDate(settings.akad_date)}
-            </p>
+
+            <div className="flex items-center justify-center gap-2 text-espresso-700 font-serif text-xs font-semibold">
+              <Calendar className="w-3.5 h-3.5 text-rosewood-600" />
+              <span>{formatDate(settings.akad_date)}</span>
+            </div>
           </div>
 
-          {/* Surah Quote - Slide Up */}
-          <div className="glass-card-romantic p-5 rounded-3xl text-center space-y-2 border border-rosewood-200 shadow-md slide-up">
-            <p className="font-serif text-sm text-rosewood-700 font-bold">
+          {/* Ornamen Pemisah Emas */}
+          <div className="flex items-center justify-center gap-3 opacity-60">
+            <div className="h-[1px] w-12 bg-rosewood-300" />
+            <div className="w-1.5 h-1.5 rotate-45 bg-rosewood-600" />
+            <div className="h-[1px] w-12 bg-rosewood-300" />
+          </div>
+
+          {/* Ayat Al-Qur'an (Surah Ar-Rum: 21) - Slide Up */}
+          <div className="glass-card-romantic p-6 rounded-3xl text-center space-y-3 border border-rosewood-200 shadow-lg slide-up">
+            <p className="font-serif text-base text-rosewood-800 font-bold leading-relaxed">
               بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
             </p>
-            <p className="text-[11px] text-espresso-700 italic leading-relaxed">
-              "Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri..."
+
+            <p className="text-xs text-espresso-800 italic leading-relaxed font-serif">
+              "Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang. Sungguh, pada yang demikian itu benar-benar terdapat tanda-tanda bagi kaum yang berpikir."
             </p>
-            <p className="text-[9px] text-rosewood-700 font-bold uppercase tracking-wider">
-              — QS. Ar-Rum: 21 —
+
+            <div className="pt-1">
+              <span className="inline-block px-3 py-1 rounded-full bg-rosewood-50 text-rosewood-700 text-[10px] font-bold uppercase tracking-wider border border-rosewood-200">
+                — QS. Ar-Rum: 21 —
+              </span>
+            </div>
+          </div>
+
+          {/* Indikator scroll ke bawah */}
+          <div className="pt-2 animate-bounce opacity-70">
+            <span className="text-[10px] font-medium text-espresso-700 tracking-wider">
+              Gulir ke bawah ↓
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* HALAMAN 2: KHUSUS KEDUA MEMPELAI (FULL PAGE)              */}
+      {/* ========================================================= */}
+      <section id="couple" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+        <div className="w-full max-w-sm mx-auto space-y-6 text-center my-auto">
+          {/* Header Salam & Pengantar - Slide Up */}
+          <div className="space-y-2 slide-up">
+            <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">
+              Sang Mempelai
+            </p>
+            <h2 className="font-serif text-2xl font-bold text-rosewood-900">
+              Mempelai Pria & Wanita
+            </h2>
+            <p className="text-[11px] text-espresso-700 leading-relaxed max-w-xs mx-auto">
+              Dengan memohon rahmat dan ridho Allah Subhanahu Wa Ta'ala, kami bermaksud mengikrarkan janji suci pernikahan:
             </p>
           </div>
 
-          {/* Groom & Bride Cards - Slide Left & Slide Right */}
-          <div className="grid grid-cols-2 gap-3 items-center pt-2">
-            {/* Groom - Slide Left */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-left flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
-                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
+          {/* Kartu Kedua Mempelai */}
+          <div className="space-y-4 pt-1">
+            {/* Mempelai Pria - Slide Left */}
+            <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md text-center slide-left">
+              {/* Foto atau Inisial Mempelai Pria */}
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md">
+                {settings.groom_photo ? (
+                  <img
+                    src={settings.groom_photo}
+                    alt={settings.groom_name || 'Mempelai Pria'}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold">
                     {settings.groom_name?.charAt(0) || 'F'}
                   </div>
-                </div>
-                <h3 className="font-serif text-sm text-rosewood-900 font-bold">
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-serif text-base text-rosewood-900 font-bold">
                   {settings.groom_name || 'Mempelai Pria'}
                 </h3>
-                <p className="text-[10px] text-espresso-700 leading-tight">
+                <p className="text-xs text-espresso-700 leading-relaxed font-medium">
                   {settings.groom_parents}
                 </p>
               </div>
@@ -100,27 +132,46 @@ export default function InvitationContent({ settings }) {
                     href={`https://instagram.com/${settings.groom_instagram.replace('@', '').trim()}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200/80 text-[10px] text-rosewood-800 font-semibold transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200 text-xs text-rosewood-800 font-semibold transition shadow-sm"
                   >
-                    <Instagram className="w-3 h-3 text-rosewood-600" />
+                    <Instagram className="w-3.5 h-3.5 text-rosewood-600" />
                     <span>@{settings.groom_instagram.replace('@', '').trim()}</span>
                   </a>
                 </div>
               )}
             </div>
 
-            {/* Bride - Slide Right */}
-            <div className="glass-card-romantic p-4 rounded-2xl space-y-2 border border-rosewood-200 shadow-sm text-center slide-right flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-200 to-champagne-300 p-0.5">
-                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-2xl font-bold">
+            {/* Simbol Pemersatu Cinta & */}
+            <div className="flex items-center justify-center gap-3 my-1">
+              <div className="h-[1px] w-12 bg-rosewood-200" />
+              <div className="w-7 h-7 rounded-full bg-rosewood-100 text-rosewood-700 flex items-center justify-center font-serif text-sm font-bold shadow-inner">
+                &
+              </div>
+              <div className="h-[1px] w-12 bg-rosewood-200" />
+            </div>
+
+            {/* Mempelai Wanita - Slide Right */}
+            <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md text-center slide-right">
+              {/* Foto atau Inisial Mempelai Wanita */}
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md">
+                {settings.bride_photo ? (
+                  <img
+                    src={settings.bride_photo}
+                    alt={settings.bride_name || 'Mempelai Wanita'}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold">
                     {settings.bride_name?.charAt(0) || 'N'}
                   </div>
-                </div>
-                <h3 className="font-serif text-sm text-rosewood-900 font-bold">
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-serif text-base text-rosewood-900 font-bold">
                   {settings.bride_name || 'Mempelai Wanita'}
                 </h3>
-                <p className="text-[10px] text-espresso-700 leading-tight">
+                <p className="text-xs text-espresso-700 leading-relaxed font-medium">
                   {settings.bride_parents}
                 </p>
               </div>
@@ -131,9 +182,9 @@ export default function InvitationContent({ settings }) {
                     href={`https://instagram.com/${settings.bride_instagram.replace('@', '').trim()}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200/80 text-[10px] text-rosewood-800 font-semibold transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rosewood-50 hover:bg-rosewood-100 border border-rosewood-200 text-xs text-rosewood-800 font-semibold transition shadow-sm"
                   >
-                    <Instagram className="w-3 h-3 text-rosewood-600" />
+                    <Instagram className="w-3.5 h-3.5 text-rosewood-600" />
                     <span>@{settings.bride_instagram.replace('@', '').trim()}</span>
                   </a>
                 </div>
@@ -143,59 +194,39 @@ export default function InvitationContent({ settings }) {
         </div>
       </section>
 
-      {/* PAGE 2: ACARA & SCHEDULE (FULL PAGE) */}
-      <section id="couple" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
-        <div className="w-full space-y-6 my-auto">
+      {/* ========================================================= */}
+      {/* HALAMAN 3: WAKTU & LOKASI ACARA (FULL PAGE)               */}
+      {/* ========================================================= */}
+      <section id="event" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+        <div className="w-full max-w-sm mx-auto space-y-6 my-auto">
           <div className="text-center space-y-1 slide-up">
             <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Jadwal & Lokasi</p>
             <h2 className="font-serif text-2xl font-bold text-rosewood-900">
               Rangkaian Acara
             </h2>
-          </div>
-
-          {/* Countdown Timer - Slide Up */}
-          <div className="glass-card-romantic p-4 rounded-2xl text-center space-y-2 border border-rosewood-200 shadow-sm slide-up">
-            <h3 className="font-serif text-xs text-rosewood-900 font-bold uppercase tracking-wider">
-              Hitung Mundur Hari Bahagia
-            </h3>
-            <div className="grid grid-cols-4 gap-2 max-w-xs mx-auto">
-              <div className="bg-cream-100 p-2 rounded-xl border border-rosewood-200">
-                <div className="text-lg font-bold font-serif text-rosewood-700">{timeLeft.days}</div>
-                <div className="text-[8px] text-espresso-700 uppercase font-semibold">Hari</div>
-              </div>
-              <div className="bg-cream-100 p-2 rounded-xl border border-rosewood-200">
-                <div className="text-lg font-bold font-serif text-rosewood-700">{timeLeft.hours}</div>
-                <div className="text-[8px] text-espresso-700 uppercase font-semibold">Jam</div>
-              </div>
-              <div className="bg-cream-100 p-2 rounded-xl border border-rosewood-200">
-                <div className="text-lg font-bold font-serif text-rosewood-700">{timeLeft.minutes}</div>
-                <div className="text-[8px] text-espresso-700 uppercase font-semibold">Menit</div>
-              </div>
-              <div className="bg-cream-100 p-2 rounded-xl border border-rosewood-200">
-                <div className="text-lg font-bold font-serif text-rosewood-700">{timeLeft.seconds}</div>
-                <div className="text-[8px] text-espresso-700 uppercase font-semibold">Detik</div>
-              </div>
-            </div>
+            <p className="text-[11px] text-espresso-700">
+              Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir pada acara kami:
+            </p>
           </div>
 
           {/* Cards for Akad & Resepsi */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Akad Nikah - Slide Left */}
-            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md slide-left">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rosewood-100 text-rosewood-700 text-[10px] font-bold uppercase">
+            <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md slide-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rosewood-100 text-rosewood-800 text-[10px] font-bold uppercase tracking-wider">
                 Akad Nikah
               </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-2 text-espresso-800">
-                  <Calendar className="w-3.5 h-3.5 text-rosewood-700 shrink-0" />
-                  <span className="font-semibold">{formatDate(settings.akad_date)}</span>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2.5 text-espresso-800">
+                  <Calendar className="w-4 h-4 text-rosewood-700 shrink-0" />
+                  <span className="font-semibold text-sm">{formatDate(settings.akad_date)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-espresso-800">
-                  <Clock className="w-3.5 h-3.5 text-rosewood-700 shrink-0" />
+                <div className="flex items-center gap-2.5 text-espresso-800">
+                  <Clock className="w-4 h-4 text-rosewood-700 shrink-0" />
                   <span>{settings.akad_time || '08:00 WIB - Selesai'}</span>
                 </div>
-                <div className="flex items-start gap-2 text-espresso-700">
-                  <MapPin className="w-3.5 h-3.5 text-rosewood-700 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 text-espresso-700 pt-1">
+                  <MapPin className="w-4 h-4 text-rosewood-700 shrink-0 mt-0.5" />
                   <span className="whitespace-pre-line leading-relaxed">{settings.akad_location}</span>
                 </div>
               </div>
@@ -204,29 +235,29 @@ export default function InvitationContent({ settings }) {
                 href={settings.google_maps_url || 'https://maps.google.com'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 text-white text-xs font-bold transition shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 active:scale-95 text-white text-xs font-bold transition shadow-md"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
                 <span>Buka Google Maps</span>
               </a>
             </div>
 
             {/* Resepsi Nikah - Slide Right */}
-            <div className="glass-card-romantic p-5 rounded-2xl space-y-3 border border-rosewood-200 shadow-md slide-right">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-champagne-200 text-champagne-600 text-[10px] font-bold uppercase">
+            <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md slide-right">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-champagne-200 text-champagne-700 text-[10px] font-bold uppercase tracking-wider">
                 Resepsi Nikah
               </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-2 text-espresso-800">
-                  <Calendar className="w-3.5 h-3.5 text-rosewood-700 shrink-0" />
-                  <span className="font-semibold">{formatDate(settings.resepsi_date)}</span>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2.5 text-espresso-800">
+                  <Calendar className="w-4 h-4 text-rosewood-700 shrink-0" />
+                  <span className="font-semibold text-sm">{formatDate(settings.resepsi_date)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-espresso-800">
-                  <Clock className="w-3.5 h-3.5 text-rosewood-700 shrink-0" />
+                <div className="flex items-center gap-2.5 text-espresso-800">
+                  <Clock className="w-4 h-4 text-rosewood-700 shrink-0" />
                   <span>{settings.resepsi_time || '11:00 - 14:00 WIB'}</span>
                 </div>
-                <div className="flex items-start gap-2 text-espresso-700">
-                  <MapPin className="w-3.5 h-3.5 text-rosewood-700 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 text-espresso-700 pt-1">
+                  <MapPin className="w-4 h-4 text-rosewood-700 shrink-0 mt-0.5" />
                   <span className="whitespace-pre-line leading-relaxed">{settings.resepsi_location}</span>
                 </div>
               </div>
@@ -235,9 +266,9 @@ export default function InvitationContent({ settings }) {
                 href={settings.google_maps_url || 'https://maps.google.com'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 text-white text-xs font-bold transition shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 active:scale-95 text-white text-xs font-bold transition shadow-md"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
                 <span>Buka Google Maps</span>
               </a>
             </div>

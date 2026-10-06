@@ -17,6 +17,8 @@ CREATE TABLE public.settings (
     bride_parents TEXT DEFAULT '',
     groom_instagram TEXT DEFAULT '',
     bride_instagram TEXT DEFAULT '',
+    groom_photo TEXT DEFAULT '',
+    bride_photo TEXT DEFAULT '',
     akad_date TEXT DEFAULT '2026-09-20',
     akad_time TEXT DEFAULT '08:00 WIB - Selesai',
     akad_location TEXT DEFAULT 'Lokasi Akad Nikah',

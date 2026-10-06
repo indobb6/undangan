@@ -3,7 +3,8 @@ import * as XLSX from 'xlsx';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
-  FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink
+  FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink,
+  Image as ImageIcon
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -698,6 +699,38 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-slate-300 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-rosewood-400" />
+                      <span>URL Foto Mempelai Pria (opsional)</span>
+                    </label>
+                    {settings.groom_photo && (
+                      <span className="text-[10px] text-emerald-400 font-semibold">✓ Foto terpasang</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Paste link URL foto (misal: https://...)"
+                    value={settings.groom_photo || ''}
+                    onChange={(e) => setSettingsState({ ...settings, groom_photo: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    *Kosongkan jika ingin menggunakan default <strong>huruf inisial</strong>.
+                  </p>
+                  {settings.groom_photo && (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
+                      <img
+                        src={settings.groom_photo}
+                        alt="Preview Pria"
+                        className="w-10 h-10 rounded-full object-cover border border-rosewood-400"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <span className="text-[11px] text-slate-300">Pratinjau Foto Pria</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -729,6 +762,38 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     onChange={(e) => setSettingsState({ ...settings, bride_instagram: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-slate-300 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-rosewood-400" />
+                      <span>URL Foto Mempelai Wanita (opsional)</span>
+                    </label>
+                    {settings.bride_photo && (
+                      <span className="text-[10px] text-emerald-400 font-semibold">✓ Foto terpasang</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Paste link URL foto (misal: https://...)"
+                    value={settings.bride_photo || ''}
+                    onChange={(e) => setSettingsState({ ...settings, bride_photo: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    *Kosongkan jika ingin menggunakan default <strong>huruf inisial</strong>.
+                  </p>
+                  {settings.bride_photo && (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
+                      <img
+                        src={settings.bride_photo}
+                        alt="Preview Wanita"
+                        className="w-10 h-10 rounded-full object-cover border border-rosewood-400"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <span className="text-[11px] text-slate-300">Pratinjau Foto Wanita</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
