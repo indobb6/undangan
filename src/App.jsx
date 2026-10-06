@@ -17,6 +17,7 @@ export default function App() {
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isCoverDismissed, setIsCoverDismissed] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isClientMode, setIsClientMode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -91,8 +92,8 @@ export default function App() {
   };
 
   const handleOpenInvitation = () => {
-    setStartMusic(true);
     setIsOpen(true);
+    setStartMusic(true);
 
     // Efek elegan: semburan lembut kelopak emas & mawar saat undangan dibuka
     try {
@@ -105,32 +106,22 @@ export default function App() {
       });
     } catch { /* ignore */ }
 
-    // Langsung otomatis scroll halus menuju bagian isi undangan (#home)
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
-        const homeEl = document.getElementById('home');
-        if (container && homeEl) {
-          container.scrollTo({
-            top: homeEl.offsetTop,
-            behavior: 'smooth'
-          });
-        } else if (container) {
-          container.scrollTo({
-            top: container.clientHeight,
-            behavior: 'smooth'
-          });
-        }
-        if (homeEl) {
-          homeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
-    });
+    // Setelah animasi slide-up cover tuntas (700ms), cover di-unmount permanen
+    // sehingga saat di-scroll ke paling atas, hanya mentok sampai Beranda (#home)
+    setTimeout(() => {
+      setIsCoverDismissed(true);
+    }, 700);
   };
 
   const scrollToSection = (id) => {
     setActiveTab(id);
     const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
+    if (id === 'home') {
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
     const element = document.getElementById(id);
     if (container && element) {
       container.scrollTo({
@@ -194,7 +185,25 @@ export default function App() {
       {/* MOBILE FRAME VIEWPORT CONTAINER */}
       {settings && (
         <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
-          {/* MAIN SCROLL CONTAINER */}
+          
+          {/* COVER SECTION OVERLAY (SLIDE-UP KELUAR & DI-UNMOUNT AGAR SCROLL MENTOK DI BERANDA) */}
+          {!isCoverDismissed && (
+            <div 
+              className={`absolute inset-0 z-30 w-full h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                isOpen 
+                  ? '-translate-y-full opacity-0 pointer-events-none' 
+                  : 'translate-y-0 opacity-100'
+              }`}
+            >
+              <CoverSection
+                settings={settings}
+                guestName={guestName}
+                onOpenInvitation={handleOpenInvitation}
+              />
+            </div>
+          )}
+
+          {/* MAIN SCROLL CONTAINER (BERANDA #home ADALAH ELEMEN PALING ATAS) */}
           <div 
             ref={scrollContainerRef}
             id="main-scroll-container"
@@ -204,16 +213,7 @@ export default function App() {
                 : 'overflow-hidden'
             }`}
           >
-            {/* COVER SECTION (PAGE 0) */}
-            <section id="cover" className="min-h-full h-full w-full shrink-0 relative flex flex-col">
-              <CoverSection
-                settings={settings}
-                guestName={guestName}
-                onOpenInvitation={handleOpenInvitation}
-              />
-            </section>
-
-            {/* INVITATION CONTENT BODY */}
+            {/* INVITATION CONTENT BODY (PAGE 1: BERANDA #home) */}
             <InvitationContent settings={settings} />
 
             <DigitalEnvelope settings={settings} />
