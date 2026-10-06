@@ -196,7 +196,7 @@ export default function InvitationContent({ settings }) {
                 </div>
                 <div className="flex items-start gap-2 text-espresso-700">
                   <MapPin className="w-3.5 h-3.5 text-rosewood-700 shrink-0 mt-0.5" />
-                  <span>{settings.akad_location}</span>
+                  <span className="whitespace-pre-line leading-relaxed">{settings.akad_location}</span>
                 </div>
               </div>
 
@@ -227,7 +227,7 @@ export default function InvitationContent({ settings }) {
                 </div>
                 <div className="flex items-start gap-2 text-espresso-700">
                   <MapPin className="w-3.5 h-3.5 text-rosewood-700 shrink-0 mt-0.5" />
-                  <span>{settings.resepsi_location}</span>
+                  <span className="whitespace-pre-line leading-relaxed">{settings.resepsi_location}</span>
                 </div>
               </div>
 

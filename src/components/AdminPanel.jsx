@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { 
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
-  FileSpreadsheet, Download, Filter, ArrowUpDown
+  FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -731,6 +731,127 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   />
                 </div>
               </div>
+            </div>
+
+            {/* JADWAL & ALAMAT LENGKAP ACARA */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>Waktu & Alamat Lengkap Acara</span>
+              </h3>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* AKAD NIKAH */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-rose-300 text-xs font-bold uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-rosewood-500"></span>
+                    <span>Jadwal & Lokasi Akad Nikah</span>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Tanggal Akad</label>
+                    <input
+                      type="date"
+                      value={settings.akad_date || ''}
+                      onChange={(e) => setSettingsState({ ...settings, akad_date: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Waktu / Jam Akad</label>
+                    <input
+                      type="text"
+                      value={settings.akad_time || ''}
+                      onChange={(e) => setSettingsState({ ...settings, akad_time: e.target.value })}
+                      placeholder="Contoh: 08:00 WIB - Selesai"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Nama Tempat & Alamat Lengkap Akad</label>
+                    <textarea
+                      rows={3}
+                      value={settings.akad_location || ''}
+                      onChange={(e) => setSettingsState({ ...settings, akad_location: e.target.value })}
+                      placeholder="Contoh: Masjid Agung Al-Azhar, Jl. Sisingamangaraja No.1, Selong, Kebayoran Baru, Jakarta Selatan"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400 resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {/* RESEPSI NIKAH */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-champagne-400 text-xs font-bold uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-champagne-500"></span>
+                    <span>Jadwal & Lokasi Resepsi</span>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Tanggal Resepsi</label>
+                    <input
+                      type="date"
+                      value={settings.resepsi_date || ''}
+                      onChange={(e) => setSettingsState({ ...settings, resepsi_date: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Waktu / Jam Resepsi</label>
+                    <input
+                      type="text"
+                      value={settings.resepsi_time || ''}
+                      onChange={(e) => setSettingsState({ ...settings, resepsi_time: e.target.value })}
+                      placeholder="Contoh: 11:00 - 14:00 WIB"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Nama Tempat & Alamat Lengkap Resepsi</label>
+                    <textarea
+                      rows={3}
+                      value={settings.resepsi_location || ''}
+                      onChange={(e) => setSettingsState({ ...settings, resepsi_location: e.target.value })}
+                      placeholder="Contoh: Gedung Sasana Kriya Grand Ballroom, TMII, Jakarta Timur"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400 resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* LINK GOOGLE MAPS */}
+            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
+                  <MapPin className="w-4 h-4 text-rosewood-500" />
+                  <span>Link Google Maps Lokasi Acara</span>
+                </div>
+                {settings.google_maps_url && (
+                  <a
+                    href={settings.google_maps_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold"
+                  >
+                    <span>Tes Link Maps</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Tautan ini dibuka ketika tamu mengklik tombol <strong>"Buka Google Maps"</strong> pada kartu jadwal acara di undangan pernikahan.
+              </p>
+              <input
+                type="text"
+                value={settings.google_maps_url || ''}
+                onChange={(e) => setSettingsState({ ...settings, google_maps_url: e.target.value })}
+                placeholder="Contoh: https://maps.app.goo.gl/... atau https://goo.gl/maps/..."
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+              />
             </div>
 
             <div className="space-y-4 pt-4 border-t border-slate-800">
