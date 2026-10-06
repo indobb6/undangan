@@ -96,7 +96,7 @@ export default function App() {
     setStartMusic(true);
     setIsOpen(true);
 
-    // Otomatis scroll ke bawah menuju bagian #home saat gerbang bunga membuka
+    // Bunga bergerak-gerak kecil terlebih dahulu selama 2.2 detik, lalu membuka seperti gerbang dan layar otomatis scroll ke #home
     setTimeout(() => {
       const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
       const homeEl = document.getElementById('home');
@@ -114,7 +114,7 @@ export default function App() {
       if (homeEl) {
         homeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 100);
+    }, 2200);
   };
 
   const scrollToSection = (id) => {
