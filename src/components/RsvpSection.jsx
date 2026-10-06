@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw, MessageSquareQuote, Heart } from 'lucide-react';
 import { submitRSVP, getAllGuests } from '../services/store';
 import useScrollReveal from '../hooks/useScrollReveal';
 
@@ -27,7 +27,8 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
   const loadWishes = async () => {
     const guests = await getAllGuests(eventSlug);
     const wishesList = guests.filter((g) => g.wishes && g.wishes.trim().length > 0);
-    setAllWishes(wishesList);
+    // Tampilkan ucapan terbaru di paling atas
+    setAllWishes([...wishesList].reverse());
 
     if (guestSlug || defaultGuestName) {
       const existing = guests.find((g) => g.slug === guestSlug || g.name.toLowerCase() === defaultGuestName.toLowerCase());
@@ -285,6 +286,62 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
               )}
             </div>
           )}
+        </div>
+
+        {/* DAFTAR UCAPAN & DOA RESTU DARI TAMU UNDANGAN */}
+        <div className="glass-card-romantic p-5 sm:p-6 rounded-3xl border border-rosewood-200 shadow-xl space-y-4 slide-up">
+          <div className="flex items-center justify-between border-b border-rosewood-100 pb-3">
+            <div className="flex items-center gap-2 text-rosewood-900 font-serif font-bold text-sm sm:text-base">
+              <MessageSquareQuote className="w-4 h-4 text-rosewood-700" />
+              <span>Ucapan & Doa Restu</span>
+            </div>
+            <span className="text-[11px] font-bold text-rosewood-700 bg-rosewood-100 px-2.5 py-0.5 rounded-full border border-rosewood-200">
+              {allWishes.length} Pesan
+            </span>
+          </div>
+
+          {/* Daftar Pesan Scrollable */}
+          <div className="max-h-72 sm:max-h-80 overflow-y-auto space-y-3 pr-1 divide-y divide-rosewood-100/60">
+            {allWishes.length === 0 ? (
+              <div className="text-center py-6 text-espresso-700/70 space-y-1">
+                <Heart className="w-7 h-7 text-rosewood-300 mx-auto animate-pulse" />
+                <p className="text-xs font-semibold text-rosewood-900">Belum Ada Ucapan</p>
+                <p className="text-[11px] text-espresso-600">
+                  Jadilah yang pertama mengirimkan ucapan & doa restu untuk kedua mempelai di atas.
+                </p>
+              </div>
+            ) : (
+              allWishes.map((item, idx) => (
+                <div key={item.id || idx} className="pt-3 first:pt-0 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-rosewood-500 to-champagne-400 text-white flex items-center justify-center font-bold text-xs font-serif shrink-0 shadow-sm">
+                        {item.name?.charAt(0).toUpperCase() || 'T'}
+                      </div>
+                      <span className="font-bold text-xs text-rosewood-950 font-serif">
+                        {item.name}
+                      </span>
+                    </div>
+
+                    {item.status === 'hadir' ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                        <span>Hadir</span>
+                      </span>
+                    ) : item.status === 'tidak_hadir' ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                        <span>Berhalangan</span>
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className="text-xs text-espresso-800 leading-relaxed font-normal bg-cream-50/70 p-3 rounded-xl border border-rosewood-100/80 whitespace-pre-line">
+                    "{item.wishes}"
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </section>

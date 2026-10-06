@@ -13,6 +13,7 @@ import { Heart, Users, Calendar, Gift, Mail } from 'lucide-react';
 
 export default function App() {
   const scrollContainerRef = useRef(null);
+  const isScrollingProgrammatically = useRef(false);
   const [eventSlug, setEventSlug] = useState('');
   const [settings, setSettings] = useState(null);
   const [guestName, setGuestName] = useState('');
@@ -125,8 +126,55 @@ export default function App() {
     }, 1250);
   };
 
+  // ★ SCROLL SPY: Otomatis ubah highlight tombol dock sesuai posisi scroll halaman
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !isOpen) return;
+
+    const sections = ['home', 'couple', 'event', 'gift', 'rsvp'];
+
+    const handleScroll = () => {
+      if (isScrollingProgrammatically.current) return;
+
+      // 1. Jika sudah di dekat paling bawah, aktifkan rsvp
+      const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (scrollBottom < 80) {
+        setActiveTab('rsvp');
+        return;
+      }
+
+      // 2. Jika masih di paling atas, aktifkan home
+      if (container.scrollTop < 80) {
+        setActiveTab('home');
+        return;
+      }
+
+      // 3. Tentukan section yang berada di zona fokus tengah layar (40% viewport height)
+      const centerLine = container.scrollTop + (container.clientHeight * 0.4);
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const id = sections[i];
+        const el = document.getElementById(id);
+        if (el && centerLine >= el.offsetTop) {
+          setActiveTab(id);
+          break;
+        }
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isOpen]);
+
   const scrollToSection = (id) => {
     setActiveTab(id);
+    isScrollingProgrammatically.current = true;
+    setTimeout(() => {
+      isScrollingProgrammatically.current = false;
+    }, 750);
+
     const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
     if (id === 'home') {
       if (container) {
@@ -245,44 +293,32 @@ export default function App() {
 
           <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
 
-          {/* BOTTOM NAVIGATION DOCK */}
+          {/* BOTTOM NAVIGATION DOCK (DENGAN SCROLLSPY AKTIF OTOMATIS) */}
           {isOpen && (
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 border border-rosewood-200 rounded-full px-4 sm:px-5 py-2.5 flex items-center gap-3.5 sm:gap-5 shadow-2xl backdrop-blur-md animate-fade-in-up">
-              <button
-                onClick={() => scrollToSection('home')}
-                className={`flex flex-col items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition ${activeTab === 'home' ? 'text-rosewood-700 font-bold scale-105' : 'text-espresso-700/60 hover:text-espresso-800'}`}
-              >
-                <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Beranda</span>
-              </button>
-              <button
-                onClick={() => scrollToSection('couple')}
-                className={`flex flex-col items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition ${activeTab === 'couple' ? 'text-rosewood-700 font-bold scale-105' : 'text-espresso-700/60 hover:text-espresso-800'}`}
-              >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Mempelai</span>
-              </button>
-              <button
-                onClick={() => scrollToSection('event')}
-                className={`flex flex-col items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition ${activeTab === 'event' ? 'text-rosewood-700 font-bold scale-105' : 'text-espresso-700/60 hover:text-espresso-800'}`}
-              >
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Acara</span>
-              </button>
-              <button
-                onClick={() => scrollToSection('gift')}
-                className={`flex flex-col items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition ${activeTab === 'gift' ? 'text-rosewood-700 font-bold scale-105' : 'text-espresso-700/60 hover:text-espresso-800'}`}
-              >
-                <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Hadiah</span>
-              </button>
-              <button
-                onClick={() => scrollToSection('rsvp')}
-                className={`flex flex-col items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition ${activeTab === 'rsvp' ? 'text-rosewood-700 font-bold scale-105' : 'text-espresso-700/60 hover:text-espresso-800'}`}
-              >
-                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>RSVP</span>
-              </button>
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 border border-rosewood-200/90 rounded-full p-1.5 flex items-center gap-1 sm:gap-1.5 shadow-2xl backdrop-blur-md animate-fade-in-up">
+              {[
+                { id: 'home', label: 'Beranda', icon: Heart },
+                { id: 'couple', label: 'Mempelai', icon: Users },
+                { id: 'event', label: 'Acara', icon: Calendar },
+                { id: 'gift', label: 'Hadiah', icon: Gift },
+                { id: 'rsvp', label: 'RSVP', icon: Mail },
+              ].map(({ id, label, icon: Icon }) => {
+                const isActive = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => scrollToSection(id)}
+                    className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-all duration-300 ${
+                      isActive
+                        ? 'bg-rosewood-700 text-white font-bold shadow-md shadow-rosewood-800/30 scale-105'
+                        : 'text-espresso-750 hover:text-rosewood-800 hover:bg-rosewood-50/70'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
+                    <span className="text-[9px] sm:text-[10px] leading-none tracking-tight">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
