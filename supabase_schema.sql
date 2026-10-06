@@ -60,3 +60,10 @@ ALTER TABLE public.guests DISABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE public.settings TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.guests TO anon, authenticated, service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- ==============================================================================
+-- OPSIONAL: JIKA DATABASE SUDAH ADA & INGIN MENAMBAHKAN KOLOM FOTO SAJA (TANPA HAPUS DATA):
+-- Jalankan 2 baris di bawah ini di SQL Editor Supabase:
+-- ==============================================================================
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS groom_photo TEXT DEFAULT '';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS bride_photo TEXT DEFAULT '';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, ExternalLink, Instagram, Heart } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
+import { formatDirectImageUrl } from '../utils/imageUrl';
 
 export default function InvitationContent({ settings }) {
   useScrollReveal();
@@ -103,17 +104,19 @@ export default function InvitationContent({ settings }) {
             {/* Mempelai Pria - Slide Left */}
             <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md text-center slide-left">
               {/* Foto atau Inisial Mempelai Pria */}
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md">
-                {settings.groom_photo ? (
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md relative overflow-hidden flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold absolute inset-0 m-1">
+                  {settings.groom_name?.charAt(0) || 'F'}
+                </div>
+                {settings.groom_photo && (
                   <img
-                    src={settings.groom_photo}
+                    src={formatDirectImageUrl(settings.groom_photo)}
                     alt={settings.groom_name || 'Mempelai Pria'}
-                    className="w-full h-full rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover relative z-10"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold">
-                    {settings.groom_name?.charAt(0) || 'F'}
-                  </div>
                 )}
               </div>
 
@@ -153,17 +156,19 @@ export default function InvitationContent({ settings }) {
             {/* Mempelai Wanita - Slide Right */}
             <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md text-center slide-right">
               {/* Foto atau Inisial Mempelai Wanita */}
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md">
-                {settings.bride_photo ? (
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-rosewood-500 via-rosewood-300 to-champagne-300 p-1 shadow-md relative overflow-hidden flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold absolute inset-0 m-1">
+                  {settings.bride_name?.charAt(0) || 'N'}
+                </div>
+                {settings.bride_photo && (
                   <img
-                    src={settings.bride_photo}
+                    src={formatDirectImageUrl(settings.bride_photo)}
                     alt={settings.bride_name || 'Mempelai Wanita'}
-                    className="w-full h-full rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover relative z-10"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-cream-100 flex items-center justify-center text-rosewood-700 font-script text-3xl font-bold">
-                    {settings.bride_name?.charAt(0) || 'N'}
-                  </div>
                 )}
               </div>
 

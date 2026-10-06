@@ -4,13 +4,14 @@ import {
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
   FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink,
-  Image as ImageIcon
+  Image as ImageIcon, Upload, X
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
   getGuestsByEvent, addOrUpdateGuest, deleteGuest, deleteEvent 
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { formatDirectImageUrl, compressImageFileToBase64 } from '../utils/imageUrl';
 
 export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent }) {
   const [eventsMap, setEventsMap] = useState({});
@@ -83,6 +84,17 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     setEventsMap((prev) => ({ ...prev, [selectedSlug]: updated }));
     setSettingsState(updated);
     alert(`Pengaturan acara "${settings.groom_name} & ${settings.bride_name}" berhasil disimpan!`);
+  };
+
+  const handleUploadPhoto = async (e, field) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await compressImageFileToBase64(file);
+      setSettingsState((prev) => ({ ...prev, [field]: base64 }));
+    } catch (err) {
+      alert('Gagal memproses foto: ' + err.message);
+    }
   };
 
   const handleCreateNewEvent = async (e) => {
@@ -699,35 +711,74 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-300 flex items-center gap-1.5">
+
+                {/* FOTO MEMPELAI PRIA */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-rose-300 font-bold flex items-center gap-1.5">
                       <ImageIcon className="w-3.5 h-3.5 text-rosewood-400" />
-                      <span>URL Foto Mempelai Pria (opsional)</span>
+                      <span>Foto Mempelai Pria (opsional)</span>
                     </label>
                     {settings.groom_photo && (
-                      <span className="text-[10px] text-emerald-400 font-semibold">✓ Foto terpasang</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettingsState({ ...settings, groom_photo: '' })}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold transition"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Hapus (Pakai Inisial)</span>
+                      </button>
                     )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Paste link URL foto (misal: https://...)"
-                    value={settings.groom_photo || ''}
-                    onChange={(e) => setSettingsState({ ...settings, groom_photo: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    *Kosongkan jika ingin menggunakan default <strong>huruf inisial</strong>.
-                  </p>
-                  {settings.groom_photo && (
-                    <div className="mt-2 flex items-center gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
-                      <img
-                        src={settings.groom_photo}
-                        alt="Preview Pria"
-                        className="w-10 h-10 rounded-full object-cover border border-rosewood-400"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+
+                  {/* Tombol Upload File Langsung */}
+                  <div>
+                    <label className="w-full cursor-pointer py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-200 border border-slate-700/80 font-semibold text-xs flex items-center justify-center gap-2 transition shadow-sm">
+                      <Upload className="w-3.5 h-3.5 text-rosewood-400" />
+                      <span>Pilih Foto dari Galeri / Laptop</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleUploadPhoto(e, 'groom_photo')}
                       />
-                      <span className="text-[11px] text-slate-300">Pratinjau Foto Pria</span>
+                    </label>
+                  </div>
+
+                  {/* Atau Input URL Foto */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 block">Atau masukkan URL / Link Foto:</span>
+                    <input
+                      type="text"
+                      placeholder="Paste link foto (Google Drive, Postimages, ImgBB, dsb)..."
+                      value={settings.groom_photo || ''}
+                      onChange={(e) => setSettingsState({ ...settings, groom_photo: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    *Jika menggunakan Google Drive, pastikan file disetel ke <em>"Siapa saja yang memiliki link"</em>. Atau gunakan tombol <strong>"Pilih Foto dari Galeri"</strong> di atas.
+                  </p>
+
+                  {/* Preview Foto */}
+                  {settings.groom_photo && (
+                    <div className="flex items-center gap-3 p-2.5 bg-slate-900/90 rounded-xl border border-slate-800">
+                      <img
+                        src={formatDirectImageUrl(settings.groom_photo)}
+                        alt="Preview Pria"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-rosewood-400 shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = '';
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="text-[11px] text-slate-300">
+                        <div className="font-semibold text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Foto Terpasang
+                        </div>
+                        <div className="text-[10px] text-slate-400">Siap ditampilkan di undangan</div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -763,35 +814,74 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-300 flex items-center gap-1.5">
+
+                {/* FOTO MEMPELAI WANITA */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-rose-300 font-bold flex items-center gap-1.5">
                       <ImageIcon className="w-3.5 h-3.5 text-rosewood-400" />
-                      <span>URL Foto Mempelai Wanita (opsional)</span>
+                      <span>Foto Mempelai Wanita (opsional)</span>
                     </label>
                     {settings.bride_photo && (
-                      <span className="text-[10px] text-emerald-400 font-semibold">✓ Foto terpasang</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettingsState({ ...settings, bride_photo: '' })}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold transition"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Hapus (Pakai Inisial)</span>
+                      </button>
                     )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Paste link URL foto (misal: https://...)"
-                    value={settings.bride_photo || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bride_photo: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    *Kosongkan jika ingin menggunakan default <strong>huruf inisial</strong>.
-                  </p>
-                  {settings.bride_photo && (
-                    <div className="mt-2 flex items-center gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
-                      <img
-                        src={settings.bride_photo}
-                        alt="Preview Wanita"
-                        className="w-10 h-10 rounded-full object-cover border border-rosewood-400"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+
+                  {/* Tombol Upload File Langsung */}
+                  <div>
+                    <label className="w-full cursor-pointer py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-200 border border-slate-700/80 font-semibold text-xs flex items-center justify-center gap-2 transition shadow-sm">
+                      <Upload className="w-3.5 h-3.5 text-rosewood-400" />
+                      <span>Pilih Foto dari Galeri / Laptop</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleUploadPhoto(e, 'bride_photo')}
                       />
-                      <span className="text-[11px] text-slate-300">Pratinjau Foto Wanita</span>
+                    </label>
+                  </div>
+
+                  {/* Atau Input URL Foto */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 block">Atau masukkan URL / Link Foto:</span>
+                    <input
+                      type="text"
+                      placeholder="Paste link foto (Google Drive, Postimages, ImgBB, dsb)..."
+                      value={settings.bride_photo || ''}
+                      onChange={(e) => setSettingsState({ ...settings, bride_photo: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    *Jika menggunakan Google Drive, pastikan file disetel ke <em>"Siapa saja yang memiliki link"</em>. Atau gunakan tombol <strong>"Pilih Foto dari Galeri"</strong> di atas.
+                  </p>
+
+                  {/* Preview Foto */}
+                  {settings.bride_photo && (
+                    <div className="flex items-center gap-3 p-2.5 bg-slate-900/90 rounded-xl border border-slate-800">
+                      <img
+                        src={formatDirectImageUrl(settings.bride_photo)}
+                        alt="Preview Wanita"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-rosewood-400 shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = '';
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="text-[11px] text-slate-300">
+                        <div className="font-semibold text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Foto Terpasang
+                        </div>
+                        <div className="text-[10px] text-slate-400">Siap ditampilkan di undangan</div>
+                      </div>
                     </div>
                   )}
                 </div>

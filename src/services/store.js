@@ -119,9 +119,27 @@ export const getWeddingSettings = async (eventSlug) => {
         .maybeSingle();
 
       if (!error && data) {
-        localMap[targetSlug] = data;
+        const localCurrent = localMap[targetSlug] || {};
+        const merged = {
+          ...GENERIC_EVENT_TEMPLATE,
+          ...localCurrent,
+          ...data
+        };
+        // Pertahankan foto jika di database Supabase kolom belum ada atau bernilai null
+        if (data.groom_photo !== undefined && data.groom_photo !== null && data.groom_photo !== '') {
+          merged.groom_photo = data.groom_photo;
+        } else if (localCurrent.groom_photo) {
+          merged.groom_photo = localCurrent.groom_photo;
+        }
+        if (data.bride_photo !== undefined && data.bride_photo !== null && data.bride_photo !== '') {
+          merged.bride_photo = data.bride_photo;
+        } else if (localCurrent.bride_photo) {
+          merged.bride_photo = localCurrent.bride_photo;
+        }
+
+        localMap[targetSlug] = merged;
         saveLocalEventsMap(localMap);
-        return data;
+        return merged;
       }
     } catch (e) {
       console.warn('Supabase fetch settings error:', e);
@@ -222,14 +240,20 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
       if (!updateError && (!data || data.length === 0)) {
         const { error: upsertError } = await supabase.from('settings').upsert(updated, { onConflict: 'event_slug' });
         if (upsertError) {
-          console.error('Supabase settings upsert error:', upsertError);
-          alert('⚠️ Supabase Error: ' + (upsertError.message || JSON.stringify(upsertError)));
+          console.warn('Supabase settings upsert error:', upsertError);
+          if (upsertError.message?.includes('column') || upsertError.code === 'PGRST204' || upsertError.code === '42703') {
+            const { groom_photo, bride_photo, ...safeRecord } = updated;
+            await supabase.from('settings').upsert(safeRecord, { onConflict: 'event_slug' });
+          }
         }
       } else if (updateError) {
-        const { error: upsertError } = await supabase.from('settings').upsert(updated);
-        if (upsertError) {
-          console.error('Supabase settings update error:', updateError);
-          alert('⚠️ Supabase Error: ' + (updateError.message || JSON.stringify(updateError)));
+        console.warn('Supabase settings update error:', updateError);
+        // Fallback jika database Supabase belum memiliki kolom foto
+        if (updateError.message?.includes('column') || updateError.code === 'PGRST204' || updateError.code === '42703') {
+          const { groom_photo, bride_photo, ...safeRecord } = updated;
+          await supabase.from('settings').update(safeRecord).eq('event_slug', cleanSlug);
+        } else {
+          alert('⚠️ Supabase Info: ' + (updateError.message || JSON.stringify(updateError)));
         }
       }
     } catch (e) {
