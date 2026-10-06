@@ -6,7 +6,7 @@ import AdminPanel from './components/AdminPanel';
 import QRScannerModal from './components/QRScannerModal';
 import MusicPlayer from './components/MusicPlayer';
 import DigitalEnvelope from './components/DigitalEnvelope';
-import MotionIntro from './components/MotionIntro';
+import FloralGate from './components/FloralGate';
 import { getWeddingSettings, getAllEvents } from './services/store';
 import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export default function App() {
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [showMotionIntro, setShowMotionIntro] = useState(false);
+  const [isGateOpen, setIsGateOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isClientMode, setIsClientMode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -91,13 +91,17 @@ export default function App() {
   };
 
   const handleOpenInvitation = () => {
-    setShowMotionIntro(true);
+    setIsGateOpen(true);
     setStartMusic(true);
-  };
-
-  const handleMotionComplete = () => {
-    setShowMotionIntro(false);
     setIsOpen(true);
+
+    // Otomatis scroll ke bawah menuju bagian #home saat gerbang bunga membuka
+    setTimeout(() => {
+      const homeEl = document.getElementById('home');
+      if (homeEl) {
+        homeEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 120);
   };
 
   const scrollToSection = (id) => {
@@ -157,72 +161,72 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-cream-100 text-espresso-800 flex items-center justify-center relative overflow-x-hidden">
-      {/* MOTION GRAPHICS INTRO OVERLAY */}
-      {showMotionIntro && (
-        <MotionIntro settings={settings} onComplete={handleMotionComplete} />
-      )}
-
-      {/* DESKTOP BACKGROUND BACKDROP */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center filter blur-xl opacity-20 pointer-events-none transform scale-110"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80')`
-        }}
-      />
-      <div className="fixed inset-0 bg-cream-100/70 pointer-events-none" />
-
       {/* MOBILE FRAME VIEWPORT CONTAINER */}
       {settings && (
         <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
-          {!isOpen ? (
-            /* COVER SECTION */
-            <CoverSection
-              settings={settings}
-              guestName={guestName}
-              onOpenInvitation={handleOpenInvitation}
-            />
-          ) : (
-            /* INVITATION CONTENT BODY (FULL PAGE SNAP CONTAINER) */
-            <div className="relative h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth">
-              <InvitationContent settings={settings} />
+          
+          {/* GERBANG BUNGA PEMBUKA (Bunga 1, 2, 3, 4) */}
+          <FloralGate isOpen={isGateOpen} />
 
-              <DigitalEnvelope settings={settings} />
+          {/* MAIN SCROLL CONTAINER */}
+          <div 
+            id="main-scroll-container"
+            className={`relative h-full w-full scroll-smooth ${
+              isOpen 
+                ? 'overflow-y-scroll snap-y snap-mandatory' 
+                : 'overflow-hidden'
+            }`}
+          >
+            {/* COVER SECTION (PAGE 0) */}
+            <section id="cover" className="min-h-full h-full w-full snap-start shrink-0 relative flex flex-col">
+              <CoverSection
+                settings={settings}
+                guestName={guestName}
+                onOpenInvitation={handleOpenInvitation}
+              />
+            </section>
 
-              <RsvpSection eventSlug={eventSlug || settings?.event_slug} defaultGuestName={guestName} guestSlug={guestSlug} />
+            {/* INVITATION CONTENT BODY */}
+            <InvitationContent settings={settings} />
 
-              <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
+            <DigitalEnvelope settings={settings} />
 
-              {/* BOTTOM NAVIGATION DOCK */}
-              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/90 border border-rosewood-200 rounded-full px-5 py-2.5 flex items-center gap-6 shadow-xl backdrop-blur-md">
-                <button
-                  onClick={() => scrollToSection('home')}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'home' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
-                >
-                  <Heart className="w-4 h-4" />
-                  <span>Beranda</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('couple')}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'couple' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Acara</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('gift')}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'gift' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
-                >
-                  <Gift className="w-4 h-4" />
-                  <span>Hadiah</span>
-                </button>
-                <button
-                  onClick={() => scrollToSection('rsvp')}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'rsvp' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>RSVP</span>
-                </button>
-              </div>
+            <RsvpSection eventSlug={eventSlug || settings?.event_slug} defaultGuestName={guestName} guestSlug={guestSlug} />
+          </div>
+
+          <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
+
+          {/* BOTTOM NAVIGATION DOCK */}
+          {isOpen && (
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/90 border border-rosewood-200 rounded-full px-5 py-2.5 flex items-center gap-6 shadow-xl backdrop-blur-md animate-fade-in-up">
+              <button
+                onClick={() => scrollToSection('home')}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'home' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
+              >
+                <Heart className="w-4 h-4" />
+                <span>Beranda</span>
+              </button>
+              <button
+                onClick={() => scrollToSection('couple')}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'couple' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Acara</span>
+              </button>
+              <button
+                onClick={() => scrollToSection('gift')}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'gift' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
+              >
+                <Gift className="w-4 h-4" />
+                <span>Hadiah</span>
+              </button>
+              <button
+                onClick={() => scrollToSection('rsvp')}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${activeTab === 'rsvp' ? 'text-rosewood-700 font-bold' : 'text-espresso-700/60'}`}
+              >
+                <Mail className="w-4 h-4" />
+                <span>RSVP</span>
+              </button>
             </div>
           )}
         </div>

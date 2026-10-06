@@ -6,7 +6,7 @@ export default function CoverSection({ settings, guestName, onOpenInvitation }) 
   const brideFirst = settings.bride_name?.split(',')[0] || 'Nadiah';
 
   return (
-    <div className="relative min-h-screen sm:min-h-[92vh] flex flex-col items-center justify-between py-10 px-4 text-center bg-gradient-to-b from-cream-100 via-rosewood-50 to-cream-100 text-espresso-800 selection:bg-rosewood-200 overflow-hidden">
+    <div className="relative min-h-full h-full flex flex-col items-center justify-between py-10 px-4 text-center bg-gradient-to-b from-cream-100 via-rosewood-50 to-cream-100 text-espresso-800 selection:bg-rosewood-200 overflow-hidden">
       {/* Soft Romantic Glow & Floral Accent */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[440px] h-[440px] sm:h-[540px] bg-gradient-to-b from-rosewood-100/50 via-champagne-200/40 to-transparent rounded-t-full blur-3xl pointer-events-none" />
 
