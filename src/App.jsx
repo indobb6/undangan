@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CoverSection from './components/CoverSection';
 import InvitationContent from './components/InvitationContent';
 import RsvpSection from './components/RsvpSection';
@@ -11,12 +11,13 @@ import { getWeddingSettings, getAllEvents } from './services/store';
 import { Heart, Calendar, Gift, Mail } from 'lucide-react';
 
 export default function App() {
+  const scrollContainerRef = useRef(null);
   const [eventSlug, setEventSlug] = useState('');
   const [settings, setSettings] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestSlug, setGuestSlug] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [isGateOpen, setIsGateOpen] = useState(false);
+  const [isGateActive, setIsGateActive] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isClientMode, setIsClientMode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -91,23 +92,41 @@ export default function App() {
   };
 
   const handleOpenInvitation = () => {
-    setIsGateOpen(true);
+    setIsGateActive(true);
     setStartMusic(true);
     setIsOpen(true);
 
     // Otomatis scroll ke bawah menuju bagian #home saat gerbang bunga membuka
     setTimeout(() => {
+      const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
       const homeEl = document.getElementById('home');
-      if (homeEl) {
-        homeEl.scrollIntoView({ behavior: 'smooth' });
+      if (container && homeEl) {
+        container.scrollTo({
+          top: homeEl.offsetTop,
+          behavior: 'smooth'
+        });
+      } else if (container) {
+        container.scrollTo({
+          top: container.clientHeight,
+          behavior: 'smooth'
+        });
       }
-    }, 120);
+      if (homeEl) {
+        homeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const scrollToSection = (id) => {
     setActiveTab(id);
+    const container = scrollContainerRef.current || document.getElementById('main-scroll-container');
     const element = document.getElementById(id);
-    if (element) {
+    if (container && element) {
+      container.scrollTo({
+        top: element.offsetTop,
+        behavior: 'smooth'
+      });
+    } else if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
@@ -165,20 +184,21 @@ export default function App() {
       {settings && (
         <div className="w-full max-w-[480px] h-screen sm:h-[92vh] sm:my-4 sm:rounded-[40px] sm:border-[8px] sm:border-rosewood-200 bg-cream-50 shadow-2xl relative flex flex-col justify-between overflow-hidden sm:ring-1 sm:ring-rosewood-300">
           
-          {/* GERBANG BUNGA PEMBUKA (Bunga 1, 2, 3, 4) */}
-          <FloralGate isOpen={isGateOpen} />
+          {/* GERBANG BUNGA PEMBUKA (HANYA MUNCUL SETELAH KLIK BUKA UNDANGAN) */}
+          <FloralGate isActive={isGateActive} />
 
           {/* MAIN SCROLL CONTAINER */}
           <div 
+            ref={scrollContainerRef}
             id="main-scroll-container"
             className={`relative h-full w-full scroll-smooth ${
               isOpen 
-                ? 'overflow-y-scroll snap-y snap-mandatory' 
+                ? 'overflow-y-auto' 
                 : 'overflow-hidden'
             }`}
           >
             {/* COVER SECTION (PAGE 0) */}
-            <section id="cover" className="min-h-full h-full w-full snap-start shrink-0 relative flex flex-col">
+            <section id="cover" className="min-h-full h-full w-full shrink-0 relative flex flex-col">
               <CoverSection
                 settings={settings}
                 guestName={guestName}
