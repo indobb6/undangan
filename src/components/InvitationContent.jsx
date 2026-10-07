@@ -271,7 +271,7 @@ export default function InvitationContent({ settings }) {
                 </div>
 
                 <a
-                  href={settings.google_maps_url || 'https://maps.google.com'}
+                  href={settings.resepsi_maps_url || settings.google_maps_url || 'https://maps.google.com'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 active:scale-95 text-white text-xs font-bold transition shadow-md"

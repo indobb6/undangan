@@ -27,6 +27,7 @@ CREATE TABLE public.settings (
     resepsi_time TEXT DEFAULT '11:00 - 14:00 WIB',
     resepsi_location TEXT DEFAULT 'Lokasi Resepsi Nikah',
     google_maps_url TEXT DEFAULT 'https://maps.google.com',
+    resepsi_maps_url TEXT DEFAULT '',
     music_url TEXT DEFAULT 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
     bank_name TEXT DEFAULT '',
     bank_account TEXT DEFAULT '',
@@ -71,5 +72,6 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, se
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS groom_photo TEXT DEFAULT '';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS bride_photo TEXT DEFAULT '';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS package_type TEXT DEFAULT 'biasa';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS resepsi_maps_url TEXT DEFAULT '';
 ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin_at TIMESTAMP WITH TIME ZONE;

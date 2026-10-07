@@ -1241,35 +1241,109 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
             </div>
 
             {/* LINK GOOGLE MAPS */}
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
+            {settings.package_type === 'intimate' ? (
+              /* INTIMATE: HANYA AKAD */
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
+                    <MapPin className="w-4 h-4 text-rosewood-500" />
+                    <span>Link Google Maps Lokasi Akad Nikah</span>
+                  </div>
+                  {settings.google_maps_url && (
+                    <a
+                      href={settings.google_maps_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold"
+                    >
+                      <span>Tes Link Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Tautan ini dibuka ketika tamu mengklik tombol <strong>"Buka Google Maps"</strong> pada kartu jadwal Akad Nikah di undangan pernikahan.
+                </p>
+                <input
+                  type="text"
+                  value={settings.google_maps_url || ''}
+                  onChange={(e) => setSettingsState({ ...settings, google_maps_url: e.target.value })}
+                  placeholder="Contoh: https://maps.app.goo.gl/... atau https://goo.gl/maps/..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                />
+              </div>
+            ) : (
+              /* BIASA / REGULER: 2 LINK MAPS (AKAD & RESEPSI BISA BEDA LOKASI) */
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
                   <MapPin className="w-4 h-4 text-rosewood-500" />
                   <span>Link Google Maps Lokasi Acara</span>
                 </div>
-                {settings.google_maps_url && (
-                  <a
-                    href={settings.google_maps_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold"
-                  >
-                    <span>Tes Link Maps</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Disediakan 2 link Google Maps terpisah jika lokasi Akad Nikah dan Resepsi diselenggarakan di tempat berbeda.
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Maps Akad */}
+                  <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-rose-300 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-400 inline-block"></span>
+                        Lokasi Akad Nikah
+                      </span>
+                      {settings.google_maps_url && (
+                        <a
+                          href={settings.google_maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 font-semibold"
+                        >
+                          <span>Tes Link</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={settings.google_maps_url || ''}
+                      onChange={(e) => setSettingsState({ ...settings, google_maps_url: e.target.value })}
+                      placeholder="https://maps.app.goo.gl/..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                    <p className="text-[10px] text-slate-500">Membuka rute pada kartu jadwal Akad Nikah.</p>
+                  </div>
+
+                  {/* Maps Resepsi */}
+                  <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                        Lokasi Resepsi Nikah
+                      </span>
+                      {(settings.resepsi_maps_url || settings.google_maps_url) && (
+                        <a
+                          href={settings.resepsi_maps_url || settings.google_maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 font-semibold"
+                        >
+                          <span>Tes Link</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={settings.resepsi_maps_url || ''}
+                      onChange={(e) => setSettingsState({ ...settings, resepsi_maps_url: e.target.value })}
+                      placeholder="Kosongkan jika sama dengan lokasi Akad"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                    <p className="text-[10px] text-slate-500">Membuka rute kartu Resepsi (otomatis ikut Akad jika kosong).</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Tautan ini dibuka ketika tamu mengklik tombol <strong>"Buka Google Maps"</strong> pada kartu jadwal acara di undangan pernikahan.
-              </p>
-              <input
-                type="text"
-                value={settings.google_maps_url || ''}
-                onChange={(e) => setSettingsState({ ...settings, google_maps_url: e.target.value })}
-                placeholder="Contoh: https://maps.app.goo.gl/... atau https://goo.gl/maps/..."
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-              />
-            </div>
+            )}
 
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">

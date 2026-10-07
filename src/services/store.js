@@ -17,6 +17,7 @@ const GENERIC_EVENT_TEMPLATE = {
   resepsi_time: '11:00 - 14:00 WIB',
   resepsi_location: 'Lokasi Resepsi Nikah',
   google_maps_url: 'https://maps.google.com',
+  resepsi_maps_url: '',
   music_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
   bank_name: '',
   bank_account: '',
@@ -142,6 +143,11 @@ export const getWeddingSettings = async (eventSlug) => {
         } else if (localCurrent.package_type) {
           merged.package_type = localCurrent.package_type;
         }
+        if (data.resepsi_maps_url !== undefined && data.resepsi_maps_url !== null) {
+          merged.resepsi_maps_url = data.resepsi_maps_url;
+        } else if (localCurrent.resepsi_maps_url) {
+          merged.resepsi_maps_url = localCurrent.resepsi_maps_url;
+        }
 
         localMap[targetSlug] = merged;
         saveLocalEventsMap(localMap);
@@ -250,7 +256,7 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
         if (upsertError) {
           console.warn('Supabase settings upsert error:', upsertError);
           if (upsertError.message?.includes('column') || upsertError.code === 'PGRST204' || upsertError.code === '42703') {
-            const { groom_photo, bride_photo, package_type, ...safeRecord } = updated;
+            const { groom_photo, bride_photo, package_type, resepsi_maps_url, ...safeRecord } = updated;
             await supabase.from('settings').upsert(safeRecord, { onConflict: 'event_slug' });
           }
         }
@@ -258,7 +264,7 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
         console.warn('Supabase settings update error:', updateError);
         // Fallback jika database Supabase belum memiliki kolom foto atau package_type
         if (updateError.message?.includes('column') || updateError.code === 'PGRST204' || updateError.code === '42703') {
-          const { groom_photo, bride_photo, package_type, ...safeRecord } = updated;
+          const { groom_photo, bride_photo, package_type, resepsi_maps_url, ...safeRecord } = updated;
           await supabase.from('settings').update(safeRecord).eq('event_slug', cleanSlug);
         } else {
           alert('⚠️ Supabase Info: ' + (updateError.message || JSON.stringify(updateError)));
