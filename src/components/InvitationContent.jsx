@@ -96,9 +96,6 @@ export default function InvitationContent({ settings }) {
                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </p>
             </div>
-            <h2 className="font-serif text-2xl font-bold text-rosewood-900">
-              Mempelai Pria & Wanita
-            </h2>
             <p className="text-[11px] text-espresso-700 leading-relaxed max-w-xs mx-auto">
               Dengan memohon rahmat dan ridho Allah Subhanahu Wa Ta'ala, kami bermaksud mengikrarkan janji suci pernikahan:
             </p>
