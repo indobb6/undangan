@@ -293,6 +293,7 @@ export default function App() {
               defaultGuestName={guestName}
               guestSlug={guestSlug}
               packageType={settings?.package_type || 'biasa'}
+              settings={settings}
             />
           </div>
 

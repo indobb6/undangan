@@ -87,10 +87,15 @@ export default function InvitationContent({ settings }) {
       <section id="couple" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
         <div className="w-full max-w-sm mx-auto space-y-6 text-center my-auto">
           {/* Header Salam & Pengantar - Slide Up */}
-          <div className="space-y-2 slide-up">
-            <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">
-              Sang Mempelai
+          <div className="space-y-3 slide-up">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-rosewood-700 font-bold">
+              Bride & Groom
             </p>
+            <div className="py-1">
+              <p className="font-serif text-xl sm:text-2xl text-rosewood-900 leading-relaxed tracking-wide font-normal" dir="rtl">
+                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+              </p>
+            </div>
             <h2 className="font-serif text-2xl font-bold text-rosewood-900">
               Mempelai Pria & Wanita
             </h2>

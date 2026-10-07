@@ -5,7 +5,7 @@ import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw, MessageSq
 import { submitRSVP, getAllGuests } from '../services/store';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, packageType = 'biasa' }) {
+export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, packageType = 'biasa', settings }) {
   const [guestName, setGuestName] = useState(defaultGuestName || '');
   const [status, setStatus] = useState('hadir');
   const [maritalStatus, setMaritalStatus] = useState('single');
@@ -18,6 +18,8 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, pa
   useScrollReveal();
 
   const isIntimate = packageType === 'intimate';
+  const groomName = settings?.groom_name?.split(',')[0]?.trim() || 'Mempelai Pria';
+  const brideName = settings?.bride_name?.split(',')[0]?.trim() || 'Mempelai Wanita';
 
   useEffect(() => {
     if (defaultGuestName) {
@@ -103,7 +105,7 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, pa
   };
 
   return (
-    <section id="rsvp" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
+    <section id="rsvp" className="min-h-screen w-full flex flex-col justify-center items-center py-12 pb-28 sm:pb-32 px-4 relative">
       <div className="w-full space-y-6 text-espresso-800 my-auto">
         <div className="text-center space-y-0.5 slide-up">
           <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">
@@ -372,6 +374,46 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, pa
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* UCAPAN PENUTUP HANGAT & TERIMA KASIH DARI MEMPELAI        */}
+        {/* ========================================================= */}
+        <div className="glass-card-romantic p-6 sm:p-7 rounded-3xl border border-rosewood-200 shadow-xl space-y-4 text-center slide-up">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-rosewood-300"></div>
+            <Heart className="w-4 h-4 text-rosewood-500 fill-rosewood-400" />
+            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-rosewood-300"></div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-rosewood-900">
+              Ungkapan Terima Kasih
+            </h3>
+            <p className="text-xs text-espresso-700 leading-relaxed max-w-xs mx-auto">
+              Merupakan suatu kehormatan dan kebahagiaan yang tak terhingga bagi kami sekeluarga apabila Bapak/Ibu/Saudara/i berkenan hadir serta memberikan doa restu bagi langkah awal kehidupan pernikahan kami.
+            </p>
+            <p className="text-xs text-espresso-700 leading-relaxed max-w-xs mx-auto pt-1">
+              Atas kehadiran, doa restu, dan ketulusan hati Bapak/Ibu/Saudara/i sekalian, kami mengucapkan terima kasih yang setulus-tulusnya. Semoga Allah SWT senantiasa melimpahkan berkah dan kebaikan untuk kita semua.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-rosewood-100/80 space-y-2">
+            <p className="text-[11px] font-medium text-rosewood-800 italic">
+              Wassalamu'alaikum Warahmatullahi Wabarakatuh
+            </p>
+            <div className="pt-1">
+              <p className="text-[10px] uppercase tracking-widest text-rosewood-600 font-semibold">
+                Kami Yang Berbahagia,
+              </p>
+              <h4 className="font-script text-2xl sm:text-3xl text-rosewood-800 font-bold pt-1">
+                {groomName} &amp; {brideName}
+              </h4>
+              <p className="text-[10px] text-espresso-600 pt-0.5">
+                Beserta Seluruh Keluarga Besar
+              </p>
+            </div>
           </div>
         </div>
       </div>
