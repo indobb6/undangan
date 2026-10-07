@@ -207,10 +207,12 @@ export default function InvitationContent({ settings }) {
           <div className="text-center space-y-1 slide-up">
             <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Jadwal & Lokasi</p>
             <h2 className="font-serif text-2xl font-bold text-rosewood-900">
-              Rangkaian Acara
+              {settings.package_type === 'intimate' ? 'Akad Nikah' : 'Rangkaian Acara'}
             </h2>
             <p className="text-[11px] text-espresso-700">
-              Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir pada acara kami:
+              {settings.package_type === 'intimate'
+                ? 'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir pada acara Akad Nikah kami:'
+                : 'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir pada acara kami:'}
             </p>
           </div>
 
@@ -247,36 +249,38 @@ export default function InvitationContent({ settings }) {
               </a>
             </div>
 
-            {/* Resepsi Nikah - Slide Right */}
-            <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md slide-right">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-champagne-200 text-champagne-700 text-[10px] font-bold uppercase tracking-wider">
-                Resepsi Nikah
-              </div>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2.5 text-espresso-800">
-                  <Calendar className="w-4 h-4 text-rosewood-700 shrink-0" />
-                  <span className="font-semibold text-sm">{formatDate(settings.resepsi_date)}</span>
+            {/* Resepsi Nikah - Hanya tampil jika paket Biasa (bukan Intimate) */}
+            {settings.package_type !== 'intimate' && (
+              <div className="glass-card-romantic p-5 rounded-3xl space-y-3 border border-rosewood-200 shadow-md slide-right">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-champagne-200 text-champagne-700 text-[10px] font-bold uppercase tracking-wider">
+                  Resepsi Nikah
                 </div>
-                <div className="flex items-center gap-2.5 text-espresso-800">
-                  <Clock className="w-4 h-4 text-rosewood-700 shrink-0" />
-                  <span>{settings.resepsi_time || '11:00 - 14:00 WIB'}</span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2.5 text-espresso-800">
+                    <Calendar className="w-4 h-4 text-rosewood-700 shrink-0" />
+                    <span className="font-semibold text-sm">{formatDate(settings.resepsi_date)}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-espresso-800">
+                    <Clock className="w-4 h-4 text-rosewood-700 shrink-0" />
+                    <span>{settings.resepsi_time || '11:00 - 14:00 WIB'}</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-espresso-700 pt-1">
+                    <MapPin className="w-4 h-4 text-rosewood-700 shrink-0 mt-0.5" />
+                    <span className="whitespace-pre-line leading-relaxed">{settings.resepsi_location}</span>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2.5 text-espresso-700 pt-1">
-                  <MapPin className="w-4 h-4 text-rosewood-700 shrink-0 mt-0.5" />
-                  <span className="whitespace-pre-line leading-relaxed">{settings.resepsi_location}</span>
-                </div>
-              </div>
 
-              <a
-                href={settings.google_maps_url || 'https://maps.google.com'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 active:scale-95 text-white text-xs font-bold transition shadow-md"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Buka Google Maps</span>
-              </a>
-            </div>
+                <a
+                  href={settings.google_maps_url || 'https://maps.google.com'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 active:scale-95 text-white text-xs font-bold transition shadow-md"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Buka Google Maps</span>
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </section>

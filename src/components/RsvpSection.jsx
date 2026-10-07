@@ -5,7 +5,7 @@ import { CheckCircle2, Ticket, Download, Send, User, Users, RefreshCw, MessageSq
 import { submitRSVP, getAllGuests } from '../services/store';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) {
+export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug, packageType = 'biasa' }) {
   const [guestName, setGuestName] = useState(defaultGuestName || '');
   const [status, setStatus] = useState('hadir');
   const [maritalStatus, setMaritalStatus] = useState('single');
@@ -16,6 +16,8 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
   const [allWishes, setAllWishes] = useState([]);
 
   useScrollReveal();
+
+  const isIntimate = packageType === 'intimate';
 
   useEffect(() => {
     if (defaultGuestName) {
@@ -89,7 +91,8 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
         const pngFile = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
         downloadLink.href = pngFile;
-        downloadLink.download = `Voucher-Makan-${submittedData.name.replace(/\s+/g, '_')}.png`;
+        const prefix = isIntimate ? 'Voucher-Makan' : 'QR-Kehadiran';
+        downloadLink.download = `${prefix}-${submittedData.name.replace(/\s+/g, '_')}.png`;
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -103,10 +106,17 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
     <section id="rsvp" className="min-h-screen w-full flex flex-col justify-center items-center py-12 px-4 relative">
       <div className="w-full space-y-6 text-espresso-800 my-auto">
         <div className="text-center space-y-0.5 slide-up">
-          <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">Konfirmasi Kehadiran</p>
+          <p className="text-[10px] uppercase tracking-widest text-rosewood-700 font-bold">
+            {isIntimate ? 'Konfirmasi Kehadiran' : 'Buku Tamu & Kehadiran'}
+          </p>
           <h2 className="font-serif text-2xl font-bold text-rosewood-900">
-            RSVP & Voucher Makan
+            {isIntimate ? 'RSVP & Voucher Makan' : 'Konfirmasi Kehadiran (RSVP)'}
           </h2>
+          <p className="text-[11px] text-espresso-700">
+            {isIntimate
+              ? 'Konfirmasi kehadiran Anda dan dapatkan QR Voucher penukaran hidangan.'
+              : 'Konfirmasi kehadiran Anda dan dapatkan QR Pass Buku Tamu Digital.'}
+          </p>
         </div>
 
         <div className="glass-card-romantic p-5 rounded-3xl border border-rosewood-200 shadow-xl slide-up">
@@ -164,7 +174,7 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
               {status === 'hadir' && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-rosewood-900 block">
-                    Status Pernikahan
+                    {isIntimate ? 'Status Pernikahan (Porsi Makan)' : 'Jumlah Kehadiran'}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -180,7 +190,9 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
                         <User className="w-3.5 h-3.5 text-rosewood-700" />
                         <span>Single</span>
                       </div>
-                      <p className="text-[9px] text-rosewood-700 font-medium">1 Voucher Makan</p>
+                      <p className="text-[9px] text-rosewood-700 font-medium">
+                        {isIntimate ? '1 Voucher Makan' : '1 Orang'}
+                      </p>
                     </button>
 
                     <button
@@ -196,7 +208,9 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
                         <Users className="w-3.5 h-3.5 text-rosewood-700" />
                         <span>Sudah Menikah</span>
                       </div>
-                      <p className="text-[9px] text-rosewood-700 font-medium">2 Voucher Makan</p>
+                      <p className="text-[9px] text-rosewood-700 font-medium">
+                        {isIntimate ? '2 Voucher Makan' : '2 Orang (Pasangan)'}
+                      </p>
                     </button>
                   </div>
                 </div>
@@ -226,7 +240,9 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Kirim RSVP & Dapatkan QR Code</span>
+                    <span>
+                      {isIntimate ? 'Kirim RSVP & Dapatkan Kupon Makan' : 'Kirim RSVP & Dapatkan QR Kehadiran'}
+                    </span>
                   </>
                 )}
               </button>
@@ -262,25 +278,40 @@ export default function RsvpSection({ eventSlug, defaultGuestName, guestSlug }) 
 
                   <div className="bg-cream-100 p-3 rounded-xl border border-rosewood-200 text-left space-y-1 text-xs">
                     <div className="flex justify-between items-center">
-                      <span className="text-espresso-700">Status Pernikahan:</span>
-                      <span className="font-bold text-rosewood-900 capitalize">
-                        {submittedData.marital_status === 'married' ? 'Sudah Menikah' : 'Single'}
+                      <span className="text-espresso-700">Tipe Acara:</span>
+                      <span className="font-bold text-rosewood-900">
+                        {isIntimate ? 'Intimate (Akad Saja)' : 'Biasa (Akad & Resepsi)'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-espresso-700">Hak Porsi Konsumsi:</span>
-                      <span className="font-bold text-rosewood-700 bg-rosewood-100 px-2 py-0.5 rounded-full">
-                        {submittedData.food_quota} Voucher Porsi
-                      </span>
-                    </div>
+                    {isIntimate ? (
+                      <div className="flex justify-between items-center">
+                        <span className="text-espresso-700">Hak Porsi Konsumsi:</span>
+                        <span className="font-bold text-rosewood-700 bg-rosewood-100 px-2 py-0.5 rounded-full">
+                          {submittedData.food_quota} Voucher Porsi
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <span className="text-espresso-700">Fungsi QR Code:</span>
+                        <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          Scan Kehadiran (Buku Tamu)
+                        </span>
+                      </div>
+                    )}
                   </div>
+
+                  <p className="text-[10px] text-espresso-700 italic">
+                    {isIntimate
+                      ? '*Tunjukkan QR ini kepada petugas katering / penerima tamu untuk penukaran hidangan.'
+                      : '*Tunjukkan kode QR ini kepada penerima tamu saat tiba di lokasi untuk pencatatan buku tamu.'}
+                  </p>
 
                   <button
                     onClick={downloadQR}
                     className="w-full py-2.5 px-3 rounded-xl bg-rosewood-700 hover:bg-rosewood-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Unduh QR Voucher</span>
+                    <span>{isIntimate ? 'Unduh QR Voucher Makan' : 'Unduh QR Buku Tamu'}</span>
                   </button>
                 </div>
               )}

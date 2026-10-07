@@ -4,11 +4,12 @@ import {
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
   FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink,
-  Image as ImageIcon, Upload, X
+  Image as ImageIcon, Upload, X, BookOpen, Utensils, UserCheck, RotateCcw
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
-  getGuestsByEvent, addOrUpdateGuest, deleteGuest, deleteEvent 
+  getGuestsByEvent, addOrUpdateGuest, deleteGuest, deleteEvent,
+  checkInGuest, undoCheckInGuest, redeemFoodVoucher
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { formatDirectImageUrl, compressImageFileToBase64 } from '../utils/imageUrl';
@@ -31,6 +32,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   // New Event Form State
   const [newEventData, setNewEventData] = useState({
     event_slug: '',
+    package_type: 'biasa',
     groom_name: '',
     bride_name: '',
     akad_date: '2026-09-20'
@@ -109,7 +111,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     setSettingsState(created);
     setGuests([]);
     setActiveTab('guests');
-    setNewEventData({ event_slug: '', groom_name: '', bride_name: '', akad_date: '2026-09-20' });
+    setNewEventData({ event_slug: '', package_type: 'biasa', groom_name: '', bride_name: '', akad_date: '2026-09-20' });
     if (onSwitchEvent) onSwitchEvent(created.event_slug);
     alert(`Acara "${created.groom_name} & ${created.bride_name}" berhasil dibuat!`);
   };
@@ -164,6 +166,29 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     }
   };
 
+  const handleToggleCheckIn = async (guest) => {
+    if (guest.checkin) {
+      if (window.confirm(`Batalkan check-in buku tamu untuk "${guest.name}"?`)) {
+        await undoCheckInGuest(guest.id);
+        setGuests(guests.map((g) => g.id === guest.id ? { ...g, checkin: false, checkin_at: null } : g));
+      }
+    } else {
+      const updated = await checkInGuest(guest.id);
+      if (updated) {
+        setGuests(guests.map((g) => g.id === guest.id ? { ...g, checkin: true, checkin_at: new Date().toISOString(), status: 'hadir' } : g));
+      }
+    }
+  };
+
+  const handleToggleRedeem = async (guest) => {
+    if (!guest.food_redeemed) {
+      const updated = await redeemFoodVoucher(guest.id);
+      if (updated) {
+        setGuests(guests.map((g) => g.id === guest.id ? { ...g, food_redeemed: true, redeemed_at: new Date().toISOString() } : g));
+      }
+    }
+  };
+
   const copyInvitationLink = (guest) => {
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?event=${selectedSlug}&to=${encodeURIComponent(guest.name)}`;
@@ -189,6 +214,8 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     return 2; // pending / belum konfirmasi
   };
 
+  const isIntimate = settings?.package_type === 'intimate';
+
   const handleExportExcel = () => {
     if (!guests || guests.length === 0) {
       alert('Belum ada data tamu di acara ini untuk diekspor!');
@@ -213,16 +240,32 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
       const maritalLabel = g.marital_status === 'married' ? 'Menikah' : 'Single';
       const quota = g.food_quota || (g.marital_status === 'married' ? 2 : 1);
       const foodStatusLabel = g.food_redeemed ? 'Sudah Ditukarkan' : 'Belum Ditukarkan';
+      const checkinLabel = g.checkin ? 'Sudah Check-in Hadir' : 'Belum Check-in';
+      const checkinTime = g.checkin_at ? new Date(g.checkin_at).toLocaleTimeString('id-ID') : '-';
       const invitationUrl = `${baseUrl}?event=${selectedSlug}&to=${encodeURIComponent(g.name)}`;
+
+      if (isIntimate) {
+        return {
+          'No': index + 1,
+          'Nama Tamu': g.name || '-',
+          'Status RSVP': rsvpLabel,
+          'Status Pernikahan': maritalLabel,
+          'Kuota Makan (Porsi)': quota,
+          'Status Kupon Makan': foodStatusLabel,
+          'Kode QR Voucher': g.qr_code_str || '-',
+          'Ucapan & Doa': g.wishes || '-',
+          'Link Undangan Tamu': invitationUrl
+        };
+      }
 
       return {
         'No': index + 1,
         'Nama Tamu': g.name || '-',
         'Status RSVP': rsvpLabel,
-        'Status Pernikahan': maritalLabel,
-        'Kuota Makan (Porsi)': quota,
-        'Status Kupon Makan': foodStatusLabel,
-        'Kode QR / Token': g.qr_code_str || '-',
+        'Status Buku Tamu': checkinLabel,
+        'Waktu Check-in': checkinTime,
+        'Kapasitas': maritalLabel === 'Menikah' ? '2 Orang (Pasangan)' : '1 Orang',
+        'Kode QR Tamu': g.qr_code_str || '-',
         'Ucapan & Doa': g.wishes || '-',
         'Link Undangan Tamu': invitationUrl
       };
@@ -231,14 +274,24 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     const worksheet = XLSX.utils.json_to_sheet(dataRows);
 
     // Atur lebar kolom agar proporsional dan mudah dibaca di Microsoft Excel
-    worksheet['!cols'] = [
+    worksheet['!cols'] = isIntimate ? [
       { wch: 6 },  // No
       { wch: 28 }, // Nama Tamu
       { wch: 20 }, // Status RSVP
       { wch: 18 }, // Status Pernikahan
       { wch: 22 }, // Kuota Makan (Porsi)
       { wch: 22 }, // Status Kupon Makan
-      { wch: 20 }, // Kode QR / Token
+      { wch: 20 }, // Kode QR
+      { wch: 40 }, // Ucapan & Doa
+      { wch: 55 }, // Link Undangan Tamu
+    ] : [
+      { wch: 6 },  // No
+      { wch: 28 }, // Nama Tamu
+      { wch: 20 }, // Status RSVP
+      { wch: 24 }, // Status Buku Tamu
+      { wch: 18 }, // Waktu Check-in
+      { wch: 22 }, // Kapasitas
+      { wch: 20 }, // Kode QR Tamu
       { wch: 40 }, // Ucapan & Doa
       { wch: 55 }, // Link Undangan Tamu
     ];
@@ -249,17 +302,23 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     // Sheet 2: Ringkasan statistik kehadiran
     const summaryRows = [
       { 'Kategori': 'Nama Acara', 'Keterangan': `${settings?.groom_name || ''} & ${settings?.bride_name || ''}` },
+      { 'Kategori': 'Tipe Paket Acara', 'Keterangan': isIntimate ? 'Intimate (Hanya Akad & Kupon Makan)' : 'Biasa (Akad, Resepsi & Buku Tamu)' },
       { 'Kategori': 'Slug Acara', 'Keterangan': selectedSlug },
       { 'Kategori': 'Total Tamu Diundang', 'Keterangan': `${guests.length} Tamu` },
       { 'Kategori': 'Konfirmasi Bisa Hadir', 'Keterangan': `${guests.filter((g) => g.status === 'hadir').length} Tamu` },
       { 'Kategori': 'Belum Konfirmasi', 'Keterangan': `${guests.filter((g) => g.status !== 'hadir' && g.status !== 'tidak_hadir').length} Tamu` },
       { 'Kategori': 'Konfirmasi Tidak Hadir', 'Keterangan': `${guests.filter((g) => g.status === 'tidak_hadir').length} Tamu` },
-      { 'Kategori': 'Total Kuota Porsi Makan (Hadir)', 'Keterangan': `${totalQuota} Porsi` },
-      { 'Kategori': 'Kupon Makan Telah Ditukarkan', 'Keterangan': `${totalRedeemed} Tamu` },
+      ...(isIntimate ? [
+        { 'Kategori': 'Total Kuota Porsi Makan (Hadir)', 'Keterangan': `${totalQuota} Porsi` },
+        { 'Kategori': 'Kupon Makan Telah Ditukarkan', 'Keterangan': `${totalRedeemed} Tamu` }
+      ] : [
+        { 'Kategori': 'Sudah Check-in Buku Tamu', 'Keterangan': `${checkedInCount} Tamu` },
+        { 'Kategori': 'Belum Check-in di Lokasi', 'Keterangan': `${Math.max(0, guests.length - checkedInCount)} Tamu` }
+      ]),
       { 'Kategori': 'Waktu Ekspor', 'Keterangan': new Date().toLocaleString('id-ID') }
     ];
     const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
-    summarySheet['!cols'] = [{ wch: 32 }, { wch: 40 }];
+    summarySheet['!cols'] = [{ wch: 34 }, { wch: 44 }];
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan RSVP');
 
     const cleanGroom = (settings?.groom_name || 'Groom').split(',')[0].trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
@@ -306,6 +365,7 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     .filter((g) => g.status === 'hadir')
     .reduce((acc, curr) => acc + (curr.food_quota || 1), 0);
   const totalRedeemed = guests.filter((g) => g.food_redeemed).length;
+  const checkedInCount = guests.filter((g) => g.checkin).length;
 
   const availableSlugs = Object.keys(eventsMap);
   const groomTitle = settings?.groom_name?.split(',')[0] || '';
@@ -466,14 +526,29 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                 <div className="text-xs text-slate-400">Konfirmasi Hadir</div>
                 <div className="text-2xl font-bold font-serif text-emerald-400">{attendingCount}</div>
               </div>
-              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                <div className="text-xs text-slate-400">Total Kuota Porsi</div>
-                <div className="text-2xl font-bold font-serif text-amber-300">{totalQuota} Porsi</div>
-              </div>
-              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                <div className="text-xs text-slate-400">Telah Ditukarkan</div>
-                <div className="text-2xl font-bold font-serif text-rose-400">{totalRedeemed} Tamu</div>
-              </div>
+              {isIntimate ? (
+                <>
+                  <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div className="text-xs text-slate-400">Total Kuota Porsi</div>
+                    <div className="text-2xl font-bold font-serif text-amber-300">{totalQuota} Porsi</div>
+                  </div>
+                  <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div className="text-xs text-slate-400">Voucher Ditukarkan</div>
+                    <div className="text-2xl font-bold font-serif text-rose-400">{totalRedeemed} Tamu</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div className="text-xs text-slate-400">Check-in Buku Tamu</div>
+                    <div className="text-2xl font-bold font-serif text-emerald-300">{checkedInCount} Hadir</div>
+                  </div>
+                  <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div className="text-xs text-slate-400">Belum Check-in</div>
+                    <div className="text-2xl font-bold font-serif text-slate-400">{Math.max(0, totalGuests - checkedInCount)} Tamu</div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Add Guest Form */}
@@ -575,9 +650,19 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   <tr>
                     <th className="p-4">Nama Tamu</th>
                     <th className="p-4">Status RSVP</th>
-                    <th className="p-4">Pernikahan</th>
-                    <th className="p-4">Kuota Makan</th>
-                    <th className="p-4">Status Makan</th>
+                    {isIntimate ? (
+                      <>
+                        <th className="p-4">Pernikahan</th>
+                        <th className="p-4">Kuota Makan</th>
+                        <th className="p-4">Status Makan</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="p-4">Buku Tamu (Check-in)</th>
+                        <th className="p-4">Kapasitas</th>
+                        <th className="p-4">Ucapan Tamu</th>
+                      </>
+                    )}
                     <th className="p-4 text-right">Aksi & Link</th>
                   </tr>
                 </thead>
@@ -609,21 +694,72 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                             </span>
                           )}
                         </td>
-                        <td className="p-4 capitalize">
-                          {guest.marital_status === 'married' ? 'Menikah' : 'Single'}
-                        </td>
-                        <td className="p-4 font-bold text-amber-300">
-                          {guest.food_quota || 1} Porsi
-                        </td>
-                        <td className="p-4">
-                          {guest.food_redeemed ? (
-                            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Sudah Ditukarkan
-                            </span>
-                          ) : (
-                            <span className="text-amber-400">Belum Ditukarkan</span>
-                          )}
-                        </td>
+
+                        {isIntimate ? (
+                          <>
+                            <td className="p-4 capitalize">
+                              {guest.marital_status === 'married' ? 'Menikah' : 'Single'}
+                            </td>
+                            <td className="p-4 font-bold text-amber-300">
+                              {guest.food_quota || 1} Porsi
+                            </td>
+                            <td className="p-4">
+                              {guest.food_redeemed ? (
+                                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Sudah Ditukarkan
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRedeem(guest)}
+                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition flex items-center gap-1"
+                                >
+                                  <Utensils className="w-3 h-3" />
+                                  <span>Tukarkan Makan</span>
+                                </button>
+                              )}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="p-4">
+                              {guest.checkin ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1 text-[11px]">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                    <span>Hadir {guest.checkin_at ? new Date(guest.checkin_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleCheckIn(guest)}
+                                    className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                                    title="Batalkan Check-in"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCheckIn(guest)}
+                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1 transition"
+                                >
+                                  <UserCheck className="w-3 h-3" />
+                                  <span>Check-in Hadir</span>
+                                </button>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              <span className="text-slate-300">
+                                {guest.marital_status === 'married' ? '2 Orang (Pasangan)' : '1 Orang'}
+                              </span>
+                            </td>
+                            <td className="p-4 max-w-[200px] truncate text-slate-400 text-[11px]" title={guest.wishes || ''}>
+                              {guest.wishes ? `"${guest.wishes}"` : '-'}
+                            </td>
+                          </>
+                        )}
+
                         <td className="p-4 text-right space-x-2">
                           <button
                             onClick={() => copyInvitationLink(guest)}
@@ -662,9 +798,112 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
         {/* TAB 2: SETTINGS FORM */}
         {!isClientMode && availableSlugs.length > 0 && activeTab === 'settings' && settings && (
           <form onSubmit={handleSaveSettings} className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
-            <h2 className="text-xl font-serif font-bold text-rose-300 border-b border-slate-800 pb-3">
-              Pengaturan Acara ({selectedSlug})
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+              <h2 className="text-xl font-serif font-bold text-rose-300">
+                Pengaturan Acara ({selectedSlug})
+              </h2>
+              <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                settings.package_type === 'intimate'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  : 'bg-rosewood-500/20 text-rose-300 border border-rose-500/40'
+              }`}>
+                {settings.package_type === 'intimate' ? '⭐ Paket Intimate' : '💒 Paket Biasa (Reguler)'}
+              </span>
+            </div>
+
+            {/* PILIHAN TIPE ACARA (INTIMATE VS BIASA) */}
+            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+              <div>
+                <label className="text-xs text-rose-300 font-bold block mb-1">
+                  Pilihan Tipe Acara / Format Pernikahan:
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Tentukan tipe acara pernikahan Anda. Opsi ini menentukan rangkaian acara yang ditampilkan dan fungsi kode QR bagi para tamu.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                {/* Opsi Intimate */}
+                <div
+                  onClick={() => setSettingsState({ ...settings, package_type: 'intimate' })}
+                  className={`p-4 rounded-2xl border cursor-pointer transition relative flex flex-col justify-between ${
+                    settings.package_type === 'intimate'
+                      ? 'bg-amber-950/30 border-amber-500/80 ring-1 ring-amber-500 shadow-lg shadow-amber-950/50'
+                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-xl ${
+                          settings.package_type === 'intimate' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          <Utensils className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-bold text-sm text-slate-100">Intimate Wedding</h4>
+                          <span className="text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full font-semibold">
+                            Hanya Akad Saja
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="package_type"
+                        checked={settings.package_type === 'intimate'}
+                        onChange={() => setSettingsState({ ...settings, package_type: 'intimate' })}
+                        className="accent-amber-500 w-4 h-4 cursor-pointer"
+                      />
+                    </div>
+                    <ul className="text-[11px] text-slate-300 space-y-1 pt-1 list-disc list-inside">
+                      <li>Hanya menampilkan prosesi <strong>Akad Nikah</strong> saja</li>
+                      <li>Kode QR tamu berfungsi sebagai <strong>Voucher Penukaran Makan</strong></li>
+                      <li>Cocok untuk acara hangat, syukuran, & keluarga dekat</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Opsi Biasa */}
+                <div
+                  onClick={() => setSettingsState({ ...settings, package_type: 'biasa' })}
+                  className={`p-4 rounded-2xl border cursor-pointer transition relative flex flex-col justify-between ${
+                    settings.package_type !== 'intimate'
+                      ? 'bg-rosewood-950/30 border-rose-500/80 ring-1 ring-rose-500 shadow-lg shadow-rose-950/50'
+                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-xl ${
+                          settings.package_type !== 'intimate' ? 'bg-rosewood-500/20 text-rose-300' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-bold text-sm text-slate-100">Pernikahan Biasa (Reguler)</h4>
+                          <span className="text-[10px] text-rose-300 bg-rosewood-500/20 px-2 py-0.5 rounded-full font-semibold">
+                            Akad & Resepsi
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="package_type"
+                        checked={settings.package_type !== 'intimate'}
+                        onChange={() => setSettingsState({ ...settings, package_type: 'biasa' })}
+                        className="accent-rosewood-500 w-4 h-4 cursor-pointer"
+                      />
+                    </div>
+                    <ul className="text-[11px] text-slate-300 space-y-1 pt-1 list-disc list-inside">
+                      <li>Menampilkan <strong>Akad Nikah</strong> dan <strong>Resepsi</strong> lengkap</li>
+                      <li>Kode QR tamu berfungsi untuk <strong>Scan Kehadiran / Buku Tamu (Guest Book)</strong></li>
+                      <li>Cocok untuk resepsi pernikahan standar & umum</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
               <div className="flex items-center gap-2 text-rose-300 text-sm font-bold">
@@ -936,45 +1175,68 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   </div>
                 </div>
 
-                {/* RESEPSI NIKAH */}
-                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-                  <div className="flex items-center gap-2 text-champagne-400 text-xs font-bold uppercase tracking-wider">
-                    <span className="w-2 h-2 rounded-full bg-champagne-500"></span>
-                    <span>Jadwal & Lokasi Resepsi</span>
+                {/* RESEPSI NIKAH (AKTIF JIKA BIASA, TERKUNCI JIKA INTIMATE) */}
+                {settings.package_type === 'intimate' ? (
+                  <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <Utensils className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-serif font-bold text-sm text-slate-100">
+                        Resepsi Dinonaktifkan (Paket Intimate)
+                      </h4>
+                      <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+                        Pada format <strong>Intimate Wedding</strong>, acara hanya berfokus pada <strong>Akad Nikah</strong> saja dan QR tamu berfungsi sebagai penukaran kupon makan.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsState({ ...settings, package_type: 'biasa' })}
+                      className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold underline pt-1"
+                    >
+                      Beralih ke Paket Biasa untuk menyelenggarakan Resepsi
+                    </button>
                   </div>
-                  
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Tanggal Resepsi</label>
-                    <input
-                      type="date"
-                      value={settings.resepsi_date || ''}
-                      onChange={(e) => setSettingsState({ ...settings, resepsi_date: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                    />
-                  </div>
+                ) : (
+                  <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex items-center gap-2 text-champagne-400 text-xs font-bold uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-champagne-500"></span>
+                      <span>Jadwal & Lokasi Resepsi</span>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Tanggal Resepsi</label>
+                      <input
+                        type="date"
+                        value={settings.resepsi_date || ''}
+                        onChange={(e) => setSettingsState({ ...settings, resepsi_date: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Waktu / Jam Resepsi</label>
-                    <input
-                      type="text"
-                      value={settings.resepsi_time || ''}
-                      onChange={(e) => setSettingsState({ ...settings, resepsi_time: e.target.value })}
-                      placeholder="Contoh: 11:00 - 14:00 WIB"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
-                    />
-                  </div>
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Waktu / Jam Resepsi</label>
+                      <input
+                        type="text"
+                        value={settings.resepsi_time || ''}
+                        onChange={(e) => setSettingsState({ ...settings, resepsi_time: e.target.value })}
+                        placeholder="Contoh: 11:00 - 14:00 WIB"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1">Nama Tempat & Alamat Lengkap Resepsi</label>
-                    <textarea
-                      rows={3}
-                      value={settings.resepsi_location || ''}
-                      onChange={(e) => setSettingsState({ ...settings, resepsi_location: e.target.value })}
-                      placeholder="Contoh: Gedung Sasana Kriya Grand Ballroom, TMII, Jakarta Timur"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400 resize-none leading-relaxed"
-                    />
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Nama Tempat & Alamat Lengkap Resepsi</label>
+                      <textarea
+                        rows={3}
+                        value={settings.resepsi_location || ''}
+                        onChange={(e) => setSettingsState({ ...settings, resepsi_location: e.target.value })}
+                        placeholder="Contoh: Gedung Sasana Kriya Grand Ballroom, TMII, Jakarta Timur"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-rose-400 resize-none leading-relaxed"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1098,6 +1360,46 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                 <Plus className="w-5 h-5 text-rose-400" />
                 <span>Buat Acara Pernikahan Baru</span>
               </h2>
+            </div>
+
+            {/* PILIHAN TIPE ACARA (INTIMATE VS BIASA) */}
+            <div className="space-y-2">
+              <label className="text-xs text-slate-300 block font-semibold">Tipe Acara / Format Pernikahan</label>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div
+                  onClick={() => setNewEventData({ ...newEventData, package_type: 'biasa' })}
+                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                    newEventData.package_type !== 'intimate'
+                      ? 'bg-rosewood-950/40 border-rose-500 ring-1 ring-rose-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-rose-400" />
+                    <span className="font-bold text-xs text-slate-100">Biasa (Akad & Resepsi)</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Format lengkap. QR tamu berfungsi untuk scan kehadiran / buku tamu digital.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setNewEventData({ ...newEventData, package_type: 'intimate' })}
+                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                    newEventData.package_type === 'intimate'
+                      ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500'
+                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Utensils className="w-4 h-4 text-amber-400" />
+                    <span className="font-bold text-xs text-slate-100">Intimate (Hanya Akad)</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Format intim. QR tamu berfungsi untuk penukaran voucher makan katering.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">

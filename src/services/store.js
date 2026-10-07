@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const GENERIC_EVENT_TEMPLATE = {
+  package_type: 'biasa', // 'biasa' (Akad & Resepsi, QR Guest Book) | 'intimate' (Hanya Akad, QR Penukaran Makanan)
   groom_name: 'Mempelai Pria',
   bride_name: 'Mempelai Wanita',
   groom_parents: 'Putra dari Bapak & Ibu...',
@@ -136,6 +137,11 @@ export const getWeddingSettings = async (eventSlug) => {
         } else if (localCurrent.bride_photo) {
           merged.bride_photo = localCurrent.bride_photo;
         }
+        if (data.package_type) {
+          merged.package_type = data.package_type;
+        } else if (localCurrent.package_type) {
+          merged.package_type = localCurrent.package_type;
+        }
 
         localMap[targetSlug] = merged;
         saveLocalEventsMap(localMap);
@@ -166,11 +172,12 @@ export const createNewEvent = async (eventData) => {
 
   const record = {
     ...GENERIC_EVENT_TEMPLATE,
+    package_type: eventData.package_type || 'biasa',
     ...eventData,
     id: event_slug,
     event_slug,
     akad_date: eventData.akad_date || '2026-09-20',
-    resepsi_date: eventData.akad_date || '2026-09-20',
+    resepsi_date: eventData.resepsi_date || eventData.akad_date || '2026-09-20',
     updated_at: new Date().toISOString()
   };
 
@@ -216,6 +223,7 @@ export const createNewEvent = async (eventData) => {
 export const saveWeddingSettings = async (eventSlug, newSettings) => {
   const cleanSlug = eventSlug || newSettings.event_slug;
   const updated = {
+    ...GENERIC_EVENT_TEMPLATE,
     ...newSettings,
     id: cleanSlug,
     event_slug: cleanSlug,
@@ -242,15 +250,15 @@ export const saveWeddingSettings = async (eventSlug, newSettings) => {
         if (upsertError) {
           console.warn('Supabase settings upsert error:', upsertError);
           if (upsertError.message?.includes('column') || upsertError.code === 'PGRST204' || upsertError.code === '42703') {
-            const { groom_photo, bride_photo, ...safeRecord } = updated;
+            const { groom_photo, bride_photo, package_type, ...safeRecord } = updated;
             await supabase.from('settings').upsert(safeRecord, { onConflict: 'event_slug' });
           }
         }
       } else if (updateError) {
         console.warn('Supabase settings update error:', updateError);
-        // Fallback jika database Supabase belum memiliki kolom foto
+        // Fallback jika database Supabase belum memiliki kolom foto atau package_type
         if (updateError.message?.includes('column') || updateError.code === 'PGRST204' || updateError.code === '42703') {
-          const { groom_photo, bride_photo, ...safeRecord } = updated;
+          const { groom_photo, bride_photo, package_type, ...safeRecord } = updated;
           await supabase.from('settings').update(safeRecord).eq('event_slug', cleanSlug);
         } else {
           alert('⚠️ Supabase Info: ' + (updateError.message || JSON.stringify(updateError)));
@@ -323,7 +331,7 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
   const cleanSlug = eventSlug || guestData.event_slug;
   const slug = guestData.slug || createSlug(guestData.name);
   const qr_code_str = guestData.qr_code_str || generateQRToken(guestData.name);
-  const food_quota = guestData.marital_status === 'married' ? 2 : 1;
+  const food_quota = guestData.food_quota !== undefined ? guestData.food_quota : (guestData.marital_status === 'married' ? 2 : 1);
 
   const record = {
     ...guestData,
@@ -332,6 +340,9 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
     qr_code_str,
     food_quota,
     food_redeemed: guestData.food_redeemed ?? false,
+    redeemed_at: guestData.redeemed_at || null,
+    checkin: guestData.checkin ?? false,
+    checkin_at: guestData.checkin_at || null,
     created_at: guestData.created_at || new Date().toISOString()
   };
 
@@ -352,12 +363,26 @@ export const addOrUpdateGuest = async (eventSlug, guestData) => {
     try {
       if (record.id && !record.id.startsWith('g-')) {
         const { error } = await supabase.from('guests').upsert(record);
-        if (error) console.error('Supabase guest upsert error:', error);
+        if (error) {
+          console.warn('Supabase guest upsert error:', error);
+          if (error.message?.includes('column') || error.code === 'PGRST204' || error.code === '42703') {
+            const { checkin, checkin_at, ...safeRec } = record;
+            await supabase.from('guests').upsert(safeRec);
+          }
+        }
       } else {
         const { id, ...newRec } = record;
         const { data, error } = await supabase.from('guests').insert(newRec).select().single();
-        if (error) console.error('Supabase guest insert error:', error);
-        if (data) record.id = data.id;
+        if (error) {
+          console.warn('Supabase guest insert error:', error);
+          if (error.message?.includes('column') || error.code === 'PGRST204' || error.code === '42703') {
+            const { checkin, checkin_at, ...safeRec } = newRec;
+            const { data: d2 } = await supabase.from('guests').insert(safeRec).select().single();
+            if (d2) record.id = d2.id;
+          }
+        } else if (data) {
+          record.id = data.id;
+        }
       }
     } catch (e) {
       console.error('Supabase guest save failed:', e);
@@ -433,6 +458,69 @@ export const redeemFoodVoucher = async (guestId) => {
   if (idx >= 0) {
     list[idx].food_redeemed = true;
     list[idx].redeemed_at = now;
+    saveLocalGuests(list);
+    return list[idx];
+  }
+  return null;
+};
+
+export const checkInGuest = async (guestId) => {
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('guests')
+        .update({ checkin: true, checkin_at: now, status: 'hadir' })
+        .eq('id', guestId)
+        .select()
+        .single();
+      if (!error && data) return data;
+      // Fallback if checkin column doesn't exist yet in Supabase
+      if (error && (error.message?.includes('column') || error.code === 'PGRST204' || error.code === '42703')) {
+        const { data: fallbackData } = await supabase
+          .from('guests')
+          .update({ status: 'hadir' })
+          .eq('id', guestId)
+          .select()
+          .single();
+        if (fallbackData) {
+          return { ...fallbackData, checkin: true, checkin_at: now };
+        }
+      }
+    } catch { /* fallback */ }
+  }
+
+  const list = getLocalGuests();
+  const idx = list.findIndex((g) => g.id === guestId);
+  if (idx >= 0) {
+    list[idx].checkin = true;
+    list[idx].checkin_at = now;
+    list[idx].status = 'hadir';
+    saveLocalGuests(list);
+    return list[idx];
+  }
+  return null;
+};
+
+export const undoCheckInGuest = async (guestId) => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('guests')
+        .update({ checkin: false, checkin_at: null })
+        .eq('id', guestId)
+        .select()
+        .single();
+      if (!error && data) return data;
+    } catch { /* fallback */ }
+  }
+
+  const list = getLocalGuests();
+  const idx = list.findIndex((g) => g.id === guestId);
+  if (idx >= 0) {
+    list[idx].checkin = false;
+    list[idx].checkin_at = null;
     saveLocalGuests(list);
     return list[idx];
   }

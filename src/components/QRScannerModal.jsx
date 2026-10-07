@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import confetti from 'canvas-confetti';
-import { QrCode, X, Search, CheckCircle2, AlertTriangle, RefreshCw, Utensils, Ticket, Camera, SwitchCamera } from 'lucide-react';
-import { getGuestByQR, redeemFoodVoucher } from '../services/store';
+import { 
+  QrCode, X, Search, CheckCircle2, AlertTriangle, RefreshCw, 
+  Utensils, Ticket, Camera, BookOpen, UserCheck, Users, Calendar
+} from 'lucide-react';
+import { getGuestByQR, redeemFoodVoucher, checkInGuest } from '../services/store';
 
-export default function QRScannerModal({ onClose }) {
+export default function QRScannerModal({ onClose, eventSlug, settings }) {
   const [manualCode, setManualCode] = useState('');
   const [scannedGuest, setScannedGuest] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+
+  // Default mode sesuai paket acara yang dipilih di pengaturan acara
+  const initialMode = settings?.package_type || 'biasa';
+  const [scannerMode, setScannerMode] = useState(initialMode); // 'biasa' (Buku Tamu) | 'intimate' (Voucher Makan)
 
   const html5QrCodeRef = useRef(null);
 
@@ -115,9 +122,32 @@ export default function QRScannerModal({ onClose }) {
     handleVerifyQR(manualCode.trim());
   };
 
+  // 1. Aksi Check-in Kehadiran / Buku Tamu (Paket Biasa)
+  const handleCheckIn = async () => {
+    if (!scannedGuest) return;
+    setIsProcessing(true);
+    try {
+      const updated = await checkInGuest(scannedGuest.id);
+      if (updated) {
+        setScannedGuest(updated);
+        confetti({
+          particleCount: 110,
+          spread: 85,
+          origin: { y: 0.5 },
+          colors: ['#22c55e', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6']
+        });
+      }
+    } catch (err) {
+      console.error('Check-in error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 2. Aksi Penukaran Voucher Makan (Paket Intimate)
   const handleRedeem = async () => {
     if (!scannedGuest) return;
-    setIsRedeeming(true);
+    setIsProcessing(true);
 
     try {
       const updated = await redeemFoodVoucher(scannedGuest.id);
@@ -132,7 +162,7 @@ export default function QRScannerModal({ onClose }) {
     } catch (err) {
       console.error('Redeem error:', err);
     } finally {
-      setIsRedeeming(false);
+      setIsProcessing(false);
     }
   };
 
@@ -145,9 +175,11 @@ export default function QRScannerModal({ onClose }) {
     }
   };
 
+  const isIntimateMode = scannerMode === 'intimate';
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 selection:bg-gold-500 selection:text-slate-900">
-      <div className="glass-card-gold w-full max-w-lg rounded-3xl border border-gold-500/40 p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 selection:bg-rosewood-500 selection:text-slate-900">
+      <div className="glass-card-gold w-full max-w-lg rounded-3xl border border-gold-500/40 p-6 sm:p-8 space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={() => {
@@ -161,13 +193,53 @@ export default function QRScannerModal({ onClose }) {
 
         {/* Header */}
         <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/20 text-gold-300 text-xs font-semibold uppercase">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/20 text-gold-300 text-xs font-semibold uppercase">
             <QrCode className="w-3.5 h-3.5" />
-            <span>Pemindai QR Code Resepsionis</span>
+            <span>Pemindai QR Resepsionis</span>
           </div>
           <h2 className="font-serif text-2xl font-bold text-slate-100">
-            Penukaran Voucher Makan
+            {isIntimateMode ? 'Penukaran Voucher Makan' : 'Scan Kehadiran / Buku Tamu'}
           </h2>
+          <p className="text-[11px] text-slate-400">
+            {isIntimateMode 
+              ? 'Mode Acara Intimate: Penukaran kupon konsumsi hidangan'
+              : 'Mode Acara Biasa: Pencatatan kehadiran digital tamu di lokasi'}
+          </p>
+        </div>
+
+        {/* Toggle Mode Scanner (Biasa vs Intimate) */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => {
+              setScannerMode('biasa');
+              setErrorMessage('');
+            }}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+              scannerMode === 'biasa'
+                ? 'bg-rosewood-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Mode Biasa (Buku Tamu)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setScannerMode('intimate');
+              setErrorMessage('');
+            }}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+              scannerMode === 'intimate'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5" />
+            <span>Mode Intimate (Voucher)</span>
+          </button>
         </div>
 
         {/* CAMERA SCANNER DISPLAY */}
@@ -232,14 +304,14 @@ export default function QRScannerModal({ onClose }) {
             {/* Manual Code Input */}
             <form onSubmit={handleManualSubmit} className="space-y-2 pt-2 border-t border-slate-800">
               <label className="text-xs text-slate-300 block font-semibold">
-                Atau Masukkan Kode QR Manual:
+                Atau Masukkan Kode QR Tamu Manual:
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="Contoh: WED-BUDI-1234..."
+                  placeholder="Contoh: WED-FAUZ-1234..."
                   className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 uppercase placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-gold-500"
                 />
                 <button
@@ -268,15 +340,21 @@ export default function QRScannerModal({ onClose }) {
           </div>
         )}
 
-        {/* SCANNED GUEST RESULT & VOUCHER REDEMPTION CARD */}
+        {/* SCANNED GUEST RESULT CARD */}
         {scannedGuest && (
           <div className="glass-card p-6 rounded-2xl border border-gold-500/40 space-y-5 text-center">
             <div className="w-16 h-16 rounded-full bg-gold-500/20 border border-gold-400 flex items-center justify-center mx-auto text-gold-300">
-              <Utensils className="w-8 h-8" />
+              {isIntimateMode ? (
+                <Utensils className="w-8 h-8" />
+              ) : (
+                <UserCheck className="w-8 h-8 text-emerald-400" />
+              )}
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] uppercase tracking-widest text-slate-400">Data Tamu Undangan</span>
+              <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                Data Tamu Terverifikasi
+              </span>
               <h3 className="font-serif text-2xl font-bold text-gold-200">
                 {scannedGuest.name}
               </h3>
@@ -285,53 +363,115 @@ export default function QRScannerModal({ onClose }) {
               </p>
             </div>
 
+            {/* DETAILS CONTAINER */}
             <div className="bg-slate-900/90 p-4 rounded-xl space-y-2 text-left text-xs border border-slate-800">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Status Kehadiran:</span>
-                <span className="font-semibold text-emerald-400 capitalize">
-                  {scannedGuest.status}
+                <span className="text-slate-400">Status RSVP:</span>
+                <span className={`font-semibold capitalize ${
+                  scannedGuest.status === 'hadir' ? 'text-emerald-400' : 'text-amber-400'
+                }`}>
+                  {scannedGuest.status === 'hadir' ? '✓ Konfirmasi Hadir' : scannedGuest.status}
                 </span>
               </div>
+
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Status Pernikahan:</span>
+                <span className="text-slate-400">
+                  {isIntimateMode ? 'Status Pernikahan:' : 'Kapasitas Kehadiran:'}
+                </span>
                 <span className="font-semibold text-slate-200 capitalize">
-                  {scannedGuest.marital_status === 'married' ? 'Sudah Menikah' : 'Single'}
+                  {scannedGuest.marital_status === 'married' 
+                    ? (isIntimateMode ? 'Sudah Menikah (2 Porsi)' : '2 Orang (Pasangan)')
+                    : (isIntimateMode ? 'Single (1 Porsi)' : '1 Orang')}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-t border-slate-800 pt-2">
-                <span className="text-slate-300 font-semibold">Hak Porsi Konsumsi:</span>
-                <span className="font-bold text-sm text-gold-300 bg-gold-500/20 px-2.5 py-0.5 rounded-full">
-                  {scannedGuest.food_quota || 1} Voucher Porsi
-                </span>
-              </div>
+
+              {isIntimateMode ? (
+                <div className="flex justify-between items-center border-t border-slate-800 pt-2">
+                  <span className="text-slate-300 font-semibold">Hak Porsi Konsumsi:</span>
+                  <span className="font-bold text-sm text-gold-300 bg-gold-500/20 px-2.5 py-0.5 rounded-full">
+                    {scannedGuest.food_quota || 1} Voucher Porsi
+                  </span>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center border-t border-slate-800 pt-2">
+                  <span className="text-slate-300 font-semibold">Status Buku Tamu:</span>
+                  <span className={`font-bold text-xs px-2.5 py-0.5 rounded-full ${
+                    scannedGuest.checkin 
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}>
+                    {scannedGuest.checkin ? '✓ Sudah Check-in Hadir' : 'Belum Check-in'}
+                  </span>
+                </div>
+              )}
+
+              {scannedGuest.wishes && (
+                <div className="border-t border-slate-800 pt-2 mt-1">
+                  <span className="text-[10px] text-slate-400 block mb-0.5 font-semibold">Ucapan Tamu:</span>
+                  <p className="text-[11px] text-slate-300 italic bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    "{scannedGuest.wishes}"
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Redemption Status */}
-            {scannedGuest.food_redeemed ? (
-              <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 space-y-1">
-                <div className="flex items-center justify-center gap-2 font-bold text-sm">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span>Voucher Sudah Ditukarkan</span>
+            {/* ACTION SECTION: INTIMATE (REDEEM FOOD) VS BIASA (CHECK-IN GUEST BOOK) */}
+            {isIntimateMode ? (
+              /* INTIMATE MODE: PENUKARAN VOUCHER MAKAN */
+              scannedGuest.food_redeemed ? (
+                <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 space-y-1">
+                  <div className="flex items-center justify-center gap-2 font-bold text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <span>Voucher Makanan Sudah Ditukarkan</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-200">
+                    Ditukarkan pada: {scannedGuest.redeemed_at ? new Date(scannedGuest.redeemed_at).toLocaleTimeString('id-ID') : 'Hari ini'}
+                  </p>
                 </div>
-                <p className="text-[11px] text-emerald-200">
-                  Ditukarkan pada: {new Date(scannedGuest.redeemed_at).toLocaleTimeString('id-ID')}
-                </p>
-              </div>
+              ) : (
+                <button
+                  onClick={handleRedeem}
+                  disabled={isProcessing}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-500/20 hover:opacity-95 transition flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Ticket className="w-5 h-5" />
+                      <span>Tukarkan {scannedGuest.food_quota || 1} Voucher Makan</span>
+                    </>
+                  )}
+                </button>
+              )
             ) : (
-              <button
-                onClick={handleRedeem}
-                disabled={isRedeeming}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:opacity-95 transition flex items-center justify-center gap-2"
-              >
-                {isRedeeming ? (
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Ticket className="w-5 h-5" />
-                    <span>Tukarkan {scannedGuest.food_quota || 1} Voucher Makan</span>
-                  </>
-                )}
-              </button>
+              /* BIASA MODE: SCAN KEHADIRAN / BUKU TAMU */
+              scannedGuest.checkin ? (
+                <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 space-y-1">
+                  <div className="flex items-center justify-center gap-2 font-bold text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <span>Kehadiran Sudah Tercatat di Buku Tamu</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-200">
+                    Waktu Kedatangan: {scannedGuest.checkin_at ? new Date(scannedGuest.checkin_at).toLocaleTimeString('id-ID') : 'Hari ini'}
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isProcessing}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:opacity-95 transition flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Konfirmasi Check-in Kehadiran (Buku Tamu)</span>
+                    </>
+                  )}
+                </button>
+              )
             )}
 
             <button
@@ -346,3 +486,4 @@ export default function QRScannerModal({ onClose }) {
     </div>
   );
 }
+

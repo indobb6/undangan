@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS public.settings CASCADE;
 CREATE TABLE public.settings (
     id TEXT PRIMARY KEY,
     event_slug TEXT NOT NULL UNIQUE,
+    package_type TEXT NOT NULL DEFAULT 'biasa', -- 'biasa' (Akad & Resepsi, QR Guest Book) | 'intimate' (Hanya Akad, QR Penukaran Makanan)
     groom_name TEXT NOT NULL DEFAULT '',
     bride_name TEXT NOT NULL DEFAULT '',
     groom_parents TEXT DEFAULT '',
@@ -48,6 +49,8 @@ CREATE TABLE public.guests (
     qr_code_str TEXT NOT NULL UNIQUE,
     food_redeemed BOOLEAN NOT NULL DEFAULT FALSE,
     redeemed_at TIMESTAMP WITH TIME ZONE,
+    checkin BOOLEAN NOT NULL DEFAULT FALSE,
+    checkin_at TIMESTAMP WITH TIME ZONE,
     wishes TEXT DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -62,8 +65,11 @@ GRANT ALL ON TABLE public.guests TO anon, authenticated, service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ==============================================================================
--- OPSIONAL: JIKA DATABASE SUDAH ADA & INGIN MENAMBAHKAN KOLOM FOTO SAJA (TANPA HAPUS DATA):
--- Jalankan 2 baris di bawah ini di SQL Editor Supabase:
+-- OPSIONAL: JIKA DATABASE SUDAH ADA & INGIN MENAMBAHKAN FITUR BARU (TANPA HAPUS DATA):
+-- Jalankan baris di bawah ini di SQL Editor Supabase:
 -- ==============================================================================
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS groom_photo TEXT DEFAULT '';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS bride_photo TEXT DEFAULT '';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS package_type TEXT DEFAULT 'biasa';
+ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin_at TIMESTAMP WITH TIME ZONE;

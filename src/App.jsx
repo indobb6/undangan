@@ -288,7 +288,12 @@ export default function App() {
             <CountdownSection targetDateStr={settings.akad_date} />
 
             {/* PAGE 5: RSVP & BUKU TAMU */}
-            <RsvpSection eventSlug={eventSlug || settings?.event_slug} defaultGuestName={guestName} guestSlug={guestSlug} />
+            <RsvpSection
+              eventSlug={eventSlug || settings?.event_slug}
+              defaultGuestName={guestName}
+              guestSlug={guestSlug}
+              packageType={settings?.package_type || 'biasa'}
+            />
           </div>
 
           <MusicPlayer musicUrl={settings.music_url} autoPlayTrigger={startMusic} />
@@ -345,7 +350,11 @@ export default function App() {
 
       {/* QR SCANNER MODAL */}
       {showScanner && (
-        <QRScannerModal onClose={() => setShowScanner(false)} />
+        <QRScannerModal
+          onClose={() => setShowScanner(false)}
+          eventSlug={eventSlug}
+          settings={settings}
+        />
       )}
     </div>
   );
