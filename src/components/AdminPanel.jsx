@@ -4,7 +4,8 @@ import {
   Settings, Users, QrCode, Save, Plus, Copy, Trash2, CheckCircle2, 
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
   FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink,
-  Image as ImageIcon, Upload, X, BookOpen, Utensils, UserCheck, RotateCcw
+  Image as ImageIcon, Upload, X, BookOpen, Utensils, UserCheck, RotateCcw,
+  MessageSquare, Sparkles, RefreshCw
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -13,6 +14,42 @@ import {
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { formatDirectImageUrl, compressImageFileToBase64 } from '../utils/imageUrl';
+
+export const DEFAULT_WA_TEMPLATE = `Kepada Yth. Bapak/Ibu/Saudara/i [nama],
+
+Tanpa mengurangi rasa hormat, kami mengundang Anda untuk hadir pada acara pernikahan kami:
+[mempelai]
+
+Detail & Konfirmasi Kehadiran dapat diakses pada link undangan berikut:
+[link]
+
+Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir dan memberikan doa restu.
+
+Terima kasih.`;
+
+export const formatWaMessage = (template, { guestName, url, groomName, brideName, date }) => {
+  const cleanTemplate = (template && template.trim()) ? template : DEFAULT_WA_TEMPLATE;
+  const groomFirst = groomName?.split(',')[0]?.trim() || 'Mempelai Pria';
+  const brideFirst = brideName?.split(',')[0]?.trim() || 'Mempelai Wanita';
+  const coupleName = `${groomFirst} & ${brideFirst}`;
+
+  let result = cleanTemplate
+    .replace(/\[nama\]/gi, guestName || '')
+    .replace(/\{nama\}/gi, guestName || '')
+    .replace(/\[mempelai\]/gi, coupleName)
+    .replace(/\{mempelai\}/gi, coupleName)
+    .replace(/\[link\]/gi, url)
+    .replace(/\{link\}/gi, url)
+    .replace(/\[tanggal\]/gi, date || '')
+    .replace(/\{tanggal\}/gi, date || '');
+
+  // Jika tag [link] tidak sengaja terhapus, otomatis tambahkan link di akhir agar tidak tertinggal
+  if (!cleanTemplate.toLowerCase().includes('[link]') && !cleanTemplate.toLowerCase().includes('{link}')) {
+    result += `\n\nLink Undangan:\n${url}`;
+  }
+
+  return result;
+};
 
 export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent }) {
   const [eventsMap, setEventsMap] = useState({});
@@ -28,6 +65,9 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [copiedAdminLink, setCopiedAdminLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [waTemplateText, setWaTemplateText] = useState(DEFAULT_WA_TEMPLATE);
+  const [waSaveFeedback, setWaSaveFeedback] = useState(null);
+  const [copiedPreview, setCopiedPreview] = useState(false);
 
   // New Event Form State
   const [newEventData, setNewEventData] = useState({
@@ -41,6 +81,12 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   useEffect(() => {
     loadAllEventsData();
   }, []);
+
+  useEffect(() => {
+    if (settings) {
+      setWaTemplateText(settings.wa_template || DEFAULT_WA_TEMPLATE);
+    }
+  }, [settings?.wa_template, selectedSlug]);
 
   const loadAllEventsData = async () => {
     const allEvts = await getAllEvents();
@@ -189,10 +235,56 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
     }
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleSaveWaTemplate = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedSlug) return;
+    setIsSaving(true);
+    const updated = await saveWeddingSettings(selectedSlug, {
+      ...settings,
+      wa_template: waTemplateText
+    });
+    setIsSaving(false);
+    setEventsMap((prev) => ({ ...prev, [selectedSlug]: updated }));
+    setSettingsState(updated);
+    setWaSaveFeedback('✓ Template pesan WhatsApp berhasil disimpan!');
+    setTimeout(() => setWaSaveFeedback(null), 3500);
+  };
+
+  const handleResetWaTemplate = () => {
+    if (window.confirm('Kembalikan template pesan WhatsApp ke teks standar default?')) {
+      setWaTemplateText(DEFAULT_WA_TEMPLATE);
+    }
+  };
+
+  const handleInsertTag = (tag) => {
+    setWaTemplateText((prev) => (prev ? `${prev} ${tag}` : tag));
+  };
+
   const copyInvitationLink = (guest) => {
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?event=${selectedSlug}&to=${encodeURIComponent(guest.name)}`;
-    const text = `Kepada Yth. Bapak/Ibu/Saudara/i ${guest.name},\n\nTanpa mengurangi rasa hormat, kami mengundang Anda untuk hadir pada acara pernikahan kami.\n\nDetail & Konfirmasi Kehadiran dapat diakses pada link berikut:\n${url}\n\nTerima kasih.`;
+    const text = formatWaMessage(settings?.wa_template, {
+      guestName: guest.name,
+      url,
+      groomName: settings?.groom_name,
+      brideName: settings?.bride_name,
+      date: settings?.akad_date ? formatDate(settings.akad_date) : ''
+    });
 
     navigator.clipboard.writeText(text);
     setCopiedSlug(guest.slug);
@@ -466,6 +558,19 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
             <span>Manajemen Tamu ({totalGuests})</span>
           </button>
 
+          {/* TAB EDIT TEKS WA - DAPAT DIAKSES OLEH CLIENT & ADMIN */}
+          <button
+            onClick={() => setActiveTab('wa_template')}
+            className={`py-3 px-6 text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
+              activeTab === 'wa_template'
+                ? 'border-rosewood-500 text-rose-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 text-emerald-400" />
+            <span>Edit Teks WhatsApp</span>
+          </button>
+
           {!isClientMode && (
             <>
               <button
@@ -631,6 +736,17 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                     <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
                     <span>Ekspor ke Excel</span>
                   </button>
+
+                  {/* Edit Template WA Shortcut Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('wa_template')}
+                    className="py-2.5 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-300 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition shrink-0"
+                    title="Edit teks undangan yang disalin ke WhatsApp"
+                  >
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                    <span>Edit Template WA</span>
+                  </button>
                 </div>
               </div>
 
@@ -791,6 +907,240 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB EDIT TEMPLATE PESAN WHATSAPP (CLIENT & ADMIN) */}
+        {availableSlugs.length > 0 && activeTab === 'wa_template' && settings && (
+          <div className="bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-serif font-bold text-slate-100">
+                    Kustomisasi Template Pesan WhatsApp
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Ubah teks undangan yang disalin secara otomatis saat Anda menekan tombol <strong className="text-slate-200">"Salin WA"</strong> pada daftar tamu.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetWaTemplate}
+                  className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center gap-1.5 transition border border-slate-700"
+                  title="Kembalikan ke template teks bawaan sistem"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Reset Default</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveWaTemplate}
+                  disabled={isSaving}
+                  className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-950/40 disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5 text-white" />
+                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Template'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* FEEDBACK TOAST */}
+            {waSaveFeedback && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{waSaveFeedback}</span>
+              </div>
+            )}
+
+            {/* TAG SELECTORS */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-300">
+                <Sparkles className="w-4 h-4 text-rose-400" />
+                <span>Tag Dinamis (Klik untuk menyisipkan ke dalam template):</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Kata dalam kurung siku akan digantikan secara otomatis dengan data masing-masing tamu saat disalin.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag('[nama]')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-xs font-mono font-semibold transition active:scale-95 flex items-center gap-1.5"
+                  title="Akan diganti dengan nama tamu undangan"
+                >
+                  <span className="text-emerald-400 font-bold">+</span>
+                  <span>[nama]</span>
+                  <span className="text-[10px] text-slate-400 font-sans font-normal">(Nama Tamu)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag('[link]')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-xs font-mono font-semibold transition active:scale-95 flex items-center gap-1.5"
+                  title="Akan diganti dengan tautan website undangan unik tamu"
+                >
+                  <span className="text-emerald-400 font-bold">+</span>
+                  <span>[link]</span>
+                  <span className="text-[10px] text-slate-400 font-sans font-normal">(Tautan Undangan)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag('[mempelai]')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-xs font-mono font-semibold transition active:scale-95 flex items-center gap-1.5"
+                  title="Akan diganti dengan nama kedua mempelai"
+                >
+                  <span className="text-emerald-400 font-bold">+</span>
+                  <span>[mempelai]</span>
+                  <span className="text-[10px] text-slate-400 font-sans font-normal">(Nama Mempelai)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag('[tanggal]')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-xs font-mono font-semibold transition active:scale-95 flex items-center gap-1.5"
+                  title="Akan diganti dengan tanggal acara"
+                >
+                  <span className="text-emerald-400 font-bold">+</span>
+                  <span>[tanggal]</span>
+                  <span className="text-[10px] text-slate-400 font-sans font-normal">(Tanggal Acara)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* TWO COLUMNS: TEXTAREA EDITOR & WHATSAPP CHAT PREVIEW */}
+            <div className="grid lg:grid-cols-2 gap-6 items-start">
+              {/* KOLOM KIRI: TEXT EDITOR */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <span>Editor Teks Pesan</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    {waTemplateText.length} karakter
+                  </span>
+                </div>
+                <textarea
+                  rows={13}
+                  value={waTemplateText}
+                  onChange={(e) => setWaTemplateText(e.target.value)}
+                  placeholder="Ketik template pesan undangan di sini..."
+                  className="w-full px-4 py-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 text-xs leading-relaxed font-sans focus:outline-none focus:border-rose-400 resize-y shadow-inner"
+                />
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-400 leading-relaxed space-y-1">
+                  <p className="text-slate-300 font-semibold flex items-center gap-1">
+                    <span>💡 Tips Format Teks WhatsApp:</span>
+                  </p>
+                  <p>• Gunakan <code className="text-rose-300 bg-slate-900 px-1 py-0.5 rounded">*teks*</code> untuk teks tebal (bold)</p>
+                  <p>• Gunakan <code className="text-rose-300 bg-slate-900 px-1 py-0.5 rounded">_teks_</code> untuk teks miring (italic)</p>
+                  <p>• Pastikan tag <code className="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded">[nama]</code> dan <code className="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded">[link]</code> ada di dalam teks agar pesan personal tamu terisi otomatis.</p>
+                </div>
+              </div>
+
+              {/* KOLOM KANAN: LIVE WHATSAPP CHAT SIMULATION */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <span>Pratinjau Tampilan Pesan WhatsApp</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded-full border border-slate-800">
+                    Simulasi Tamu: "Bpk. Budi & Keluarga"
+                  </span>
+                </div>
+
+                {/* WHATSAPP PHONE MOCKUP CARD */}
+                {(() => {
+                  const sampleGuestName = 'Bpk. Budi & Keluarga';
+                  const sampleUrl = `${window.location.origin}${window.location.pathname}?event=${selectedSlug || 'acara'}&to=${encodeURIComponent(sampleGuestName)}`;
+                  const previewMessage = formatWaMessage(waTemplateText, {
+                    guestName: sampleGuestName,
+                    url: sampleUrl,
+                    groomName: settings?.groom_name || 'Fauzi Pratama',
+                    brideName: settings?.bride_name || 'Nadiah Rahmawati',
+                    date: settings?.akad_date ? formatDate(settings.akad_date) : 'Sabtu, 20 September 2026'
+                  });
+
+                  return (
+                    <div className="rounded-2xl border border-slate-800 overflow-hidden shadow-2xl bg-[#0b141a]">
+                      {/* WhatsApp Top Header Bar */}
+                      <div className="bg-[#1f2c34] px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                            B
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-200">Bpk. Budi & Keluarga</div>
+                            <div className="text-[10px] text-emerald-400">Online</div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span>Pratinjau Langsung</span>
+                        </div>
+                      </div>
+
+                      {/* Chat Wallpaper Area */}
+                      <div className="p-4 sm:p-5 min-h-[280px] bg-[#0b141a] flex flex-col justify-end">
+                        {/* Outgoing Message Bubble */}
+                        <div className="self-end max-w-[92%] sm:max-w-[85%] bg-[#005c4b] text-slate-100 rounded-2xl rounded-tr-none p-3.5 shadow-md space-y-2 border border-emerald-900/40">
+                          <div className="text-xs leading-relaxed whitespace-pre-wrap break-words font-sans text-slate-100">
+                            {previewMessage}
+                          </div>
+                          <div className="flex items-center justify-end gap-1 text-[10px] text-emerald-200/70 pt-1">
+                            <span>12:00</span>
+                            <span className="text-emerald-300 font-bold">✓✓</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Action */}
+                      <div className="bg-[#1f2c34] px-4 py-3 border-t border-slate-800 flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-slate-400">
+                          Ini adalah pratinjau teks yang akan tersalin ke clipboard.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(previewMessage);
+                            setCopiedPreview(true);
+                            setTimeout(() => setCopiedPreview(false), 2500);
+                          }}
+                          className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-semibold flex items-center gap-1.5 transition shrink-0"
+                        >
+                          {copiedPreview ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-200" />
+                              <span>Pesan Tersalin!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Tes Salin Teks Ini</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveWaTemplate}
+                disabled={isSaving}
+                className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-950/40 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 text-white" />
+                <span>{isSaving ? 'Menyimpan ke Database...' : 'Simpan Seluruh Perubahan Template'}</span>
+              </button>
             </div>
           </div>
         )}
