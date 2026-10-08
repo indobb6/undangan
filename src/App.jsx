@@ -3,13 +3,15 @@ import CoverSection from './components/CoverSection';
 import InvitationContent from './components/InvitationContent';
 import RsvpSection from './components/RsvpSection';
 import AdminPanel from './components/AdminPanel';
+import AdminAuthModal from './components/AdminAuthModal';
 import QRScannerModal from './components/QRScannerModal';
 import MusicPlayer from './components/MusicPlayer';
 import DigitalEnvelope from './components/DigitalEnvelope';
 import CountdownSection from './components/CountdownSection';
 import confetti from 'canvas-confetti';
 import { getWeddingSettings, getAllEvents } from './services/store';
-import { Heart, Users, Calendar, Gift, Mail } from 'lucide-react';
+import { Heart, Users, Calendar, Gift, Mail, Lock } from 'lucide-react';
+import { isAdminSessionAuthenticated, logoutAdminSession } from './utils/adminAuth';
 
 export default function App() {
   const scrollContainerRef = useRef(null);
@@ -26,6 +28,9 @@ export default function App() {
   const [startMusic, setStartMusic] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [isLandingPage, setIsLandingPage] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return isAdminSessionAuthenticated();
+  });
 
   useEffect(() => {
     initApp();
@@ -91,6 +96,27 @@ export default function App() {
     setEventSlug(targetSlug);
     const res = await getWeddingSettings(targetSlug);
     setSettings(res);
+  };
+
+  const handleCloseAdmin = () => {
+    setShowAdmin(false);
+    if (eventSlug) reloadEventSettings(eventSlug);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('admin');
+      url.searchParams.delete('client');
+      url.searchParams.delete('mode');
+      const cleanSearch = url.searchParams.toString();
+      const newUrl = cleanSearch ? `${window.location.pathname}?${cleanSearch}` : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleLogoutAdmin = () => {
+    logoutAdminSession();
+    setIsAdminAuthenticated(false);
   };
 
   const handleOpenInvitation = () => {
@@ -194,7 +220,7 @@ export default function App() {
   };
 
   // 2. Render clean landing page on root URL
-  if (isLandingPage) {
+  if (isLandingPage && !showAdmin) {
     return (
       <div className="min-h-screen bg-cream-100 flex flex-col items-center justify-center p-4 selection:bg-rosewood-500 selection:text-white">
         <div className="w-full max-w-md bg-white/95 border border-rosewood-200/60 rounded-[32px] p-8 text-center shadow-xl space-y-6 animate-fade-in-up backdrop-blur-md">
@@ -225,6 +251,20 @@ export default function App() {
             >
               <span>📸 Instagram: @yaserazaramadhan</span>
             </a>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAdmin(true);
+                  setIsClientMode(false);
+                }}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-espresso-700/60 hover:text-rosewood-800 hover:bg-rosewood-50/60 text-[11px] font-semibold transition cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5 text-rosewood-400" />
+                <span>Masuk Panel Admin</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -330,15 +370,27 @@ export default function App() {
         </div>
       )}
 
-      {/* ADMIN PANEL MODAL */}
-      {showAdmin && (
+      {/* ADMIN AUTH MODAL (PROTEKSI PASSWORD) */}
+      {showAdmin && !isAdminAuthenticated && (
+        <AdminAuthModal
+          isOpen={showAdmin && !isAdminAuthenticated}
+          currentEventSlug={eventSlug}
+          isClientMode={isClientMode}
+          eventSettings={settings}
+          onSuccess={() => {
+            setIsAdminAuthenticated(true);
+          }}
+          onClose={handleCloseAdmin}
+        />
+      )}
+
+      {/* ADMIN PANEL MODAL (SETELAH PASSWORD TERVERIFIKASI) */}
+      {showAdmin && isAdminAuthenticated && (
         <AdminPanel
           currentEventSlug={eventSlug}
           isClientMode={isClientMode}
-          onClose={() => {
-            setShowAdmin(false);
-            reloadEventSettings(eventSlug);
-          }}
+          onClose={handleCloseAdmin}
+          onLogout={handleLogoutAdmin}
           onSwitchEvent={(newSlug) => {
             reloadEventSettings(newSlug);
           }}

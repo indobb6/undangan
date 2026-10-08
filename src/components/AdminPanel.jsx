@@ -5,7 +5,7 @@ import {
   Database, Music, CreditCard, Check, Search, Share2, Layers, Heart,
   FileSpreadsheet, Download, Filter, ArrowUpDown, MapPin, Calendar, Clock, ExternalLink,
   Image as ImageIcon, Upload, X, BookOpen, Utensils, UserCheck, RotateCcw,
-  MessageSquare, Sparkles, RefreshCw
+  MessageSquare, Sparkles, RefreshCw, Lock, Unlock, Eye, EyeOff, KeyRound, ShieldCheck, LogOut
 } from 'lucide-react';
 import { 
   getAllEvents, getWeddingSettings, saveWeddingSettings, createNewEvent,
@@ -14,6 +14,7 @@ import {
 } from '../services/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { formatDirectImageUrl, compressImageFileToBase64 } from '../utils/imageUrl';
+import { getMasterPassword, setMasterPassword, logoutAdminSession } from '../utils/adminAuth';
 
 export const DEFAULT_WA_TEMPLATE = `Kepada Yth. Bapak/Ibu/Saudara/i [nama],
 
@@ -51,7 +52,7 @@ export const formatWaMessage = (template, { guestName, url, groomName, brideName
   return result;
 };
 
-export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent }) {
+export default function AdminPanel({ currentEventSlug, isClientMode, onClose, onOpenScanner, onSwitchEvent, onLogout }) {
   const [eventsMap, setEventsMap] = useState({});
   const [selectedSlug, setSelectedSlug] = useState(currentEventSlug || '');
   const [activeTab, setActiveTab] = useState('guests');
@@ -69,17 +70,25 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
   const [waSaveFeedback, setWaSaveFeedback] = useState(null);
   const [copiedPreview, setCopiedPreview] = useState(false);
 
+  // Password Management States
+  const [showEventPass, setShowEventPass] = useState(false);
+  const [showMasterPass, setShowMasterPass] = useState(false);
+  const [masterPassInput, setMasterPassInput] = useState('');
+  const [masterPassFeedback, setMasterPassFeedback] = useState(null);
+
   // New Event Form State
   const [newEventData, setNewEventData] = useState({
     event_slug: '',
     package_type: 'biasa',
     groom_name: '',
     bride_name: '',
-    akad_date: '2026-09-20'
+    akad_date: '2026-09-20',
+    admin_password: ''
   });
 
   useEffect(() => {
     loadAllEventsData();
+    setMasterPassInput(getMasterPassword());
   }, []);
 
   useEffect(() => {
@@ -533,6 +542,23 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
             >
               <QrCode className="w-4 h-4" />
               <span>QR Scanner</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                logoutAdminSession();
+                if (onLogout) {
+                  onLogout();
+                } else {
+                  onClose();
+                }
+              }}
+              className="py-2.5 px-3.5 sm:px-4 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+              title="Kunci / Keluar dari Panel Admin"
+            >
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              <span>Kunci Admin</span>
             </button>
 
             <button
@@ -1754,6 +1780,104 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
               </div>
             </div>
 
+            {/* KEAMANAN & PASSWORD PANEL ADMIN */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>Keamanan & Password Panel Admin</span>
+              </h3>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* 1. Password Acara Ini */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-rosewood-400" />
+                      <span>Password Acara Ini</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full font-mono">{selectedSlug}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Password khusus yang dapat diberikan ke klien/panitia acara ini agar hanya bisa membuka data acara mereka.
+                  </p>
+                  <div className="relative">
+                    <input
+                      type={showEventPass ? 'text' : 'password'}
+                      placeholder="Kosongkan jika pakai default (admin123)"
+                      value={settings.admin_password || ''}
+                      onChange={(e) => setSettingsState({ ...settings, admin_password: e.target.value })}
+                      className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-100 font-sans focus:outline-none focus:border-rose-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEventPass(!showEventPass)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                      title={showEventPass ? 'Sembunyikan' : 'Tampilkan'}
+                    >
+                      {showEventPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    *Klik tombol <strong>"Simpan Seluruh Perubahan"</strong> di bawah untuk menerapkan.
+                  </p>
+                </div>
+
+                {/* 2. Master Password Admin (Super Admin) */}
+                {!isClientMode && (
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Master Password Admin</span>
+                      </span>
+                      <span className="text-[10px] text-amber-400/90 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Super Admin</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Password utama pengembang/pemilik aplikasi untuk membuka seluruh acara dan dashboard Super Admin.
+                    </p>
+                    <div className="relative">
+                      <input
+                        type={showMasterPass ? 'text' : 'password'}
+                        placeholder="Master password baru..."
+                        value={masterPassInput}
+                        onChange={(e) => setMasterPassInput(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-100 font-sans focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterPass(!showMasterPass)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                        title={showMasterPass ? 'Sembunyikan' : 'Tampilkan'}
+                      >
+                        {showMasterPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!masterPassInput.trim()) {
+                            alert('Password master tidak boleh kosong!');
+                            return;
+                          }
+                          setMasterPassword(masterPassInput.trim());
+                          setMasterPassFeedback('✓ Master password berhasil diperbarui!');
+                          setTimeout(() => setMasterPassFeedback(null), 3500);
+                        }}
+                        className="py-1.5 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Update Master Password</span>
+                      </button>
+                      {masterPassFeedback && (
+                        <span className="text-[11px] text-emerald-400 font-semibold animate-fade-in">{masterPassFeedback}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="pt-4 flex flex-wrap gap-3">
               <button
                 type="submit"
@@ -1873,6 +1997,20 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 block mb-1">Password Khusus Acara Ini (Opsional)</label>
+              <input
+                type="text"
+                placeholder="Kosongkan jika ingin menggunakan password bawaan (admin123)"
+                value={newEventData.admin_password || ''}
+                onChange={(e) => setNewEventData({ ...newEventData, admin_password: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Password ini diberikan kepada klien untuk mengelola tamu acara ini melalui link khusus klien.
+              </p>
             </div>
 
             <button

@@ -36,6 +36,7 @@ CREATE TABLE public.settings (
     bank_name_2 TEXT DEFAULT '',
     bank_account_2 TEXT DEFAULT '',
     bank_owner_2 TEXT DEFAULT '',
+    admin_password TEXT DEFAULT '',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -75,5 +76,6 @@ ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS bride_photo TEXT DEFAULT ''
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS package_type TEXT DEFAULT 'biasa';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS resepsi_maps_url TEXT DEFAULT '';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS wa_template TEXT DEFAULT '';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS admin_password TEXT DEFAULT '';
 ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.guests ADD COLUMN IF NOT EXISTS checkin_at TIMESTAMP WITH TIME ZONE;
