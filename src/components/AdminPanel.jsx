@@ -1722,62 +1722,113 @@ export default function AdminPanel({ currentEventSlug, isClientMode, onClose, on
             )}
 
             <div className="space-y-4 pt-4 border-t border-slate-800">
-              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
-                <CreditCard className="w-4 h-4" />
-                <span>Amplop Digital / Transfer Bank</span>
-              </h3>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                  <span className="text-xs font-bold text-slate-300">Bank 1 (BCA)</span>
-                  <input
-                    type="text"
-                    placeholder="Nama Bank"
-                    value={settings.bank_name || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nomor Rekening"
-                    value={settings.bank_account || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_account: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nama Pemilik Rekening"
-                    value={settings.bank_owner || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_owner: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
-                  />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    <span>Amplop Digital / Transfer Bank</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Atur apakah amplop digital ingin diadakan atau ditiadakan di halaman undangan.
+                  </p>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                  <span className="text-xs font-bold text-slate-300">Bank 2 (Mandiri / E-Wallet)</span>
-                  <input
-                    type="text"
-                    placeholder="Nama Bank"
-                    value={settings.bank_name_2 || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_name_2: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nomor Rekening"
-                    value={settings.bank_account_2 || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_account_2: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Nama Pemilik Rekening"
-                    value={settings.bank_owner_2 || ''}
-                    onChange={(e) => setSettingsState({ ...settings, bank_owner_2: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
-                  />
+                {/* Tombol Toggle Diadakan / Ditiadakan */}
+                <div className="inline-flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsState({ ...settings, show_digital_envelope: true })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                      settings.show_digital_envelope !== false
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Diadakan</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettingsState({ ...settings, show_digital_envelope: false })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                      settings.show_digital_envelope === false
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Ditiadakan</span>
+                  </button>
                 </div>
               </div>
+
+              {settings.show_digital_envelope === false ? (
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-dashed border-slate-800 text-center space-y-1">
+                  <p className="text-xs text-rose-300 font-semibold">
+                    🚫 Amplop Digital Saat Ini Ditiadakan
+                  </p>
+                  <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                    Bagian "Amplop Digital & Hadiah" serta tombol menu Hadiah di bilah navigasi bawah otomatis disembunyikan dari halaman undangan tamu.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                      <span className="text-xs font-bold text-slate-300">Bank 1 (BCA)</span>
+                      <input
+                        type="text"
+                        placeholder="Nama Bank (cth: Bank BCA)"
+                        value={settings.bank_name || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_name: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nomor Rekening"
+                        value={settings.bank_account || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_account: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nama Pemilik Rekening"
+                        value={settings.bank_owner || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_owner: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                      />
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                      <span className="text-xs font-bold text-slate-300">Bank 2 (Mandiri / E-Wallet)</span>
+                      <input
+                        type="text"
+                        placeholder="Nama Bank (cth: Bank Mandiri / Gopay)"
+                        value={settings.bank_name_2 || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_name_2: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nomor Rekening"
+                        value={settings.bank_account_2 || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_account_2: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nama Pemilik Rekening"
+                        value={settings.bank_owner_2 || ''}
+                        onChange={(e) => setSettingsState({ ...settings, bank_owner_2: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500 italic">
+                    *Catatan: Jika kedua nomor rekening dikosongkan, bagian Amplop Digital otomatis tidak akan ditampilkan di halaman undangan agar tampilan tetap bersih dan rapi.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* KEAMANAN & PASSWORD PANEL ADMIN */}

@@ -54,7 +54,7 @@ export default function MusicPlayer({ musicUrl, autoPlayTrigger }) {
   };
 
   return (
-    <div className="fixed bottom-6 left-6 z-40">
+    <div className="fixed top-4 right-4 sm:top-6 sm:right-[max(1.5rem,calc(50%-220px))] z-40">
       {youtubeId ? (
         <iframe
           id="youtube-audio-iframe"
@@ -76,15 +76,16 @@ export default function MusicPlayer({ musicUrl, autoPlayTrigger }) {
 
       <button
         onClick={togglePlay}
-        className={`w-11 h-11 rounded-full flex items-center justify-center shadow-xl transition-all border transform hover:scale-110 ${
+        className={`w-11 h-11 rounded-full flex items-center justify-center shadow-xl transition-all border transform hover:scale-110 active:scale-95 ${
           isPlaying
-            ? 'bg-rosewood-500 text-white border-rosewood-400 animate-spin-slow shadow-rosewood-500/30'
-            : 'bg-white/90 text-rosewood-700 border-rose-200 backdrop-blur-md'
+            ? 'bg-rosewood-700 text-white border-rosewood-500 animate-spin-slow shadow-rosewood-700/40 ring-2 ring-rosewood-200/50'
+            : 'bg-white/95 text-rosewood-700 border-rosewood-200 backdrop-blur-md hover:bg-rosewood-50 shadow-md ring-1 ring-rosewood-100'
         }`}
-        title={isPlaying ? 'Matikan Musik' : 'Putar Musik'}
+        title={isPlaying ? 'Matikan Suara Musik' : 'Putar Musik'}
+        aria-label={isPlaying ? 'Matikan Suara Musik' : 'Putar Musik'}
       >
         {isPlaying ? (
-          <Volume2 className="w-5 h-5 animate-pulse text-white" />
+          <Volume2 className="w-5 h-5 text-white" />
         ) : (
           <VolumeX className="w-5 h-5 text-rosewood-700" />
         )}

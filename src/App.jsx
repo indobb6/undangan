@@ -152,12 +152,23 @@ export default function App() {
     }, 1250);
   };
 
+  // Cek apakah fitur amplop digital diadakan dan memiliki data rekening
+  const hasDigitalEnvelope = Boolean(
+    settings &&
+    settings.show_digital_envelope !== false &&
+    settings.show_digital_envelope !== 'false' &&
+    ((settings.bank_account && settings.bank_account.trim()) ||
+     (settings.bank_account_2 && settings.bank_account_2.trim()))
+  );
+
   // ★ SCROLL SPY: Otomatis ubah highlight tombol dock sesuai posisi scroll halaman
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || !isOpen) return;
 
-    const sections = ['home', 'couple', 'event', 'gift', 'rsvp'];
+    const sections = hasDigitalEnvelope
+      ? ['home', 'couple', 'event', 'gift', 'rsvp']
+      : ['home', 'couple', 'event', 'rsvp'];
 
     const handleScroll = () => {
       if (isScrollingProgrammatically.current) return;
@@ -192,7 +203,7 @@ export default function App() {
     handleScroll();
 
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isOpen]);
+  }, [isOpen, hasDigitalEnvelope]);
 
   const scrollToSection = (id) => {
     setActiveTab(id);
@@ -321,8 +332,8 @@ export default function App() {
             */}
             <InvitationContent settings={settings} />
 
-            {/* PAGE 4: DIGITAL ENVELOPE / HADIAH */}
-            <DigitalEnvelope settings={settings} />
+            {/* PAGE 4: DIGITAL ENVELOPE / HADIAH (HANYA MUNCUL JIKA DIADAKAN & ADA NOMOR REKENING) */}
+            {hasDigitalEnvelope && <DigitalEnvelope settings={settings} />}
 
             {/* HITUNG MUNDUR (DI AKHIR SEBELUM RSVP) */}
             <CountdownSection targetDateStr={settings.akad_date} />
@@ -346,7 +357,7 @@ export default function App() {
                 { id: 'home', label: 'Beranda', icon: Heart },
                 { id: 'couple', label: 'Mempelai', icon: Users },
                 { id: 'event', label: 'Acara', icon: Calendar },
-                { id: 'gift', label: 'Hadiah', icon: Gift },
+                ...(hasDigitalEnvelope ? [{ id: 'gift', label: 'Hadiah', icon: Gift }] : []),
                 { id: 'rsvp', label: 'RSVP', icon: Mail },
               ].map(({ id, label, icon: Icon }) => {
                 const isActive = activeTab === id;

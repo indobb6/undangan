@@ -36,6 +36,7 @@ CREATE TABLE public.settings (
     bank_name_2 TEXT DEFAULT '',
     bank_account_2 TEXT DEFAULT '',
     bank_owner_2 TEXT DEFAULT '',
+    show_digital_envelope BOOLEAN NOT NULL DEFAULT TRUE,
     admin_password TEXT DEFAULT '',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

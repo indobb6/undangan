@@ -7,6 +7,15 @@ export default function DigitalEnvelope({ settings }) {
 
   useScrollReveal();
 
+  const isEnabled = settings?.show_digital_envelope !== false && settings?.show_digital_envelope !== 'false';
+  const hasAccount1 = Boolean(settings?.bank_account && settings.bank_account.trim());
+  const hasAccount2 = Boolean(settings?.bank_account_2 && settings.bank_account_2.trim());
+
+  // Jika amplop digital dinonaktifkan atau semua rekening kosong, sembunyikan seluruh section
+  if (!isEnabled || (!hasAccount1 && !hasAccount2)) {
+    return null;
+  }
+
   const copyToClipboard = (accNum, type) => {
     navigator.clipboard.writeText(accNum);
     setCopiedAccount(type);
@@ -28,7 +37,7 @@ export default function DigitalEnvelope({ settings }) {
 
         <div className="space-y-4">
           {/* Bank 1 - Slide Left */}
-          {settings.bank_account && (
+          {hasAccount1 && (
             <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden slide-left">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -69,7 +78,7 @@ export default function DigitalEnvelope({ settings }) {
           )}
 
           {/* Bank 2 - Slide Right */}
-          {settings.bank_account_2 && (
+          {hasAccount2 && (
             <div className="glass-card-romantic p-6 rounded-2xl border border-rosewood-200 shadow-lg space-y-3 relative overflow-hidden slide-right">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
